@@ -79,6 +79,10 @@ function isIxAppContainer(container: Docker.ContainerInfo) {
   return isIxProjectName(container.Labels["com.docker.compose.project"])
 }
 
+function isNetworkSpecified(container: Docker.ContainerInfo) {
+  return container.Labels["network.to.connect"] !== undefined
+}
+
 async function connectAllContainersToAppsNetwork(docker: Docker) {
   logger.debug("Connecting existing app containers to network")
 
@@ -91,15 +95,22 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
 
   const appContainers = containers.filter(isIxAppContainer)
   for (const container of appContainers) {
-    for (let i = 0; i < networks_names.length; i++) {
-      if (isContainerInNetwork(container, networks_names[i])) {
-        logger.debug(`Container ${container.Id} already connected to network`)
-        continue
+    if (isNetworkSpecified(container)) {
+      const individualNetworks: string[] = container.Labels["network.to.connect"].split(',')
+      logger.info(`Connecting ${container.Names} to ${individualNetworks}`)
+
+      for (let i = 0; i < individualNetworks.length; i++) {
+        if (isContainerInNetwork(container, individualNetworks[i])) {
+          logger.debug(`Container ${container.Id} already connected to network`)
+          continue
+        }
+
+        await connectContainerToAppsNetwork(docker, container, individualNetworks[i])
       }
 
-      await connectContainerToAppsNetwork(docker, container, networks_names[i])
+      logger.info(`${container.Names} is connected to all its networks`)
+    }
   }
-}
 
   logger.info("All existing app containers connected to network")
 }
@@ -116,14 +127,21 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
     return
   }
 
-  for (let i = 0; i < networks_names.length; i++) {
-    if (isContainerInNetwork(container, networks_names[i])) {
-      logger.debug(`Container ${container.Id} already connected to network`)
-      return
+  if (isNetworkSpecified(container)) {
+    const individualNetworks: string[] = container.Labels["network.to.connect"].split(',')
+    logger.info(`Connecting ${container.Names} to ${individualNetworks}`)
+
+    for (let i = 0; i < individualNetworks.length; i++) {
+      if (isContainerInNetwork(container, individualNetworks[i])) {
+        logger.debug(`Container ${container.Id} already connected to network`)
+        return
+      }
+
+      logger.debug(`New container started: ${container.Id}`)
+      await connectContainerToAppsNetwork(docker, container, individualNetworks[i])
     }
 
-    logger.debug(`New container started: ${container.Id}`)
-    await connectContainerToAppsNetwork(docker, container, networks_names[i])
+    logger.info(`${container.Names} is connected to all its networks`)
   }
 }
 
