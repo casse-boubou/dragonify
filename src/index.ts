@@ -50,7 +50,7 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
   const network = docker.getNetwork(network_name)
   const dnsName = getDnsName(container)
 
-  logger.debug(`Connecting container ${container.Id} to network as ${dnsName}`)
+  logger.debug(`Connecting container ${container.Id} to network ${network_name} as ${dnsName}`)
 
   try {
     await network.connect({
@@ -60,11 +60,11 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
       }
     })
   } catch (e: any) {
-    logger.error(`Failed to connect container ${container.Id} to network:`, e)
+    logger.error(`Failed to connect container ${container.Id} to network ${network_name}:`, e)
     return
   }
 
-  logger.info(`Container ${container.Id} (aka ${container.Names.join(", ")}) connected to network as ${dnsName}`)
+  logger.info(`Container ${container.Id} (aka ${container.Names.join(", ")}) connected to network ${network_name} as ${dnsName}`)
 }
 
 function isContainerInNetwork(container: Docker.ContainerInfo, network_name: string) {
@@ -101,7 +101,7 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
 
       for (let i = 0; i < individualNetworks.length; i++) {
         if (isContainerInNetwork(container, individualNetworks[i])) {
-          logger.debug(`Container ${container.Id} already connected to network`)
+          logger.debug(`Container ${container.Id} already connected to network ${individualNetworks[i]}`)
           continue
         }
 
@@ -112,7 +112,7 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
     }
   }
 
-  logger.info("All existing app containers connected to network")
+  logger.info("All configured app containers connected to their network")
 }
 
 async function connectNewContainerToAppsNetwork(docker: Docker, containerId: string) {
@@ -133,7 +133,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
     for (let i = 0; i < individualNetworks.length; i++) {
       if (isContainerInNetwork(container, individualNetworks[i])) {
-        logger.debug(`Container ${container.Id} already connected to network`)
+        logger.debug(`Container ${container.Id} already connected to network ${individualNetworks[i]}`)
         return
       }
 
