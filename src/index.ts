@@ -148,6 +148,29 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
   }
 }
 
+
+
+
+
+
+async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
+
+
+
+  const existingNetworks = await docker.listNetworks()
+  if (existingNetworks.length === 1) {
+    logger.info(`11111111111111111111 All Network are ${existingNetworks}`)
+  }
+
+  else {
+    logger.info(`222222222222222222222222 All Network are ${existingNetworks}`)
+      }
+    }
+
+
+
+
+
 async function main() {
   const docker = new Docker()
 
@@ -162,6 +185,15 @@ async function main() {
     }
 
     connectNewContainerToAppsNetwork(docker, event.Actor["ID"])
+  })
+
+  events.on("container.stop", (event) => {
+    const containerAttributes = event.Actor.Attributes
+    if (!isIxProjectName(containerAttributes["com.docker.compose.project"])) {
+      return
+    }
+
+    removeEmptyCreatedNetwork(docker, event.Actor["ID"])
   })
 }
 
