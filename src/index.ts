@@ -151,7 +151,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
 function isNetworkDragonify(network: Docker.NetworkInspectInfo) {
   if (network.IPAM !== undefined){
-    return network.IPAM["tj.horner.dragonify.networks"] !== undefined
+    return network.IPAM["Config"] !== undefined
   }
   return false
 }
