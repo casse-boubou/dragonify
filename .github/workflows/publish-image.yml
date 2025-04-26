@@ -1,7 +1,7 @@
 name: Build Docker Image
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main","test" ]
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
