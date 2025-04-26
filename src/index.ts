@@ -149,11 +149,11 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 }
 
 function isDragonifyNetworktrue(name: string) {
-  logger.info(`1111111111111111111111 `)
+  logger.info(`1111111111111111111111 ${name} `)
   return name == "True"
 }
 function isDragonifyNetwork(network: any) {
-  logger.info(`22222222222222222222222 `)
+  logger.info(`22222222222222222222222 ${network}`)
   return isDragonifyNetworktrue(network.Labels["tj.horner.dragonify.networks"])
 }
 
