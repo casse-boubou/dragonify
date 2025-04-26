@@ -99,7 +99,7 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
 
   const isExistingNetwork = await docker.listNetworks({filters: {name: [network_name]}})
   if (isExistingNetwork.length !== 1) {
-    logger.info(`Network ${network_name}  don't exists yet, creating...`)
+    logger.info(`Network ${network_name} need by ${container.Names} don't exists yet, creating...`)
     await docker.createNetwork({
       Name: network_name,
       Driver: "bridge",
