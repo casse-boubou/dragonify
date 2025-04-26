@@ -165,13 +165,16 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
     if (isNetworkDragonify(network)) {
       if ( network.Labels !== undefined) {
         logger.info(`1111111111111111111111111 ${network.Labels[0]}`)
+        logger.info(`1111111111111111111111111 empty ${network.Name}`)
       }
     }
     logger.info(`444444444444444444444 ${network.Containers}`)
+    logger.info(`444444444444444444444 empty ${network.Name}`)
     function isEmpty(obj: any | undefined): boolean {
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
           logger.info(`6666666666666666666666666 ${key}`)
+          logger.info(`6666666666666666666666666 empty ${network.Name}`)
           return false;
         }
         logger.info(`555555555555555555 ${key}`)
