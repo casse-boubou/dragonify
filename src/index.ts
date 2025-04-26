@@ -154,7 +154,7 @@ function isDragonifyNetworktrue(name: string) {
 }
 function isDragonifyNetwork(network: any) {
   logger.info(`22222222222222222222222 ${network}`)
-  return isDragonifyNetworktrue(network.Labels["tj.horner.dragonify.networks"])
+  return network.Labels["tj.horner.dragonify.networks"]
 }
 
 
