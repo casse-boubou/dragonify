@@ -80,7 +80,7 @@ function isIxAppContainer(container: Docker.ContainerInfo) {
 }
 
 function isNetworkSpecified(container: Docker.ContainerInfo) {
-  return container.Labels["network.to.connect"] !== undefined
+  return container.Labels["tj.horner.dragonify.networks"] !== undefined
 }
 
 async function connectAllContainersToAppsNetwork(docker: Docker) {
@@ -96,7 +96,7 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
   const appContainers = containers.filter(isIxAppContainer)
   for (const container of appContainers) {
     if (isNetworkSpecified(container)) {
-      const individualNetworks: string[] = container.Labels["network.to.connect"].split(',')
+      const individualNetworks: string[] = container.Labels["tj.horner.dragonify.networks"].split(',')
       logger.info(`Connecting ${container.Names} to ${individualNetworks}`)
 
       for (let i = 0; i < individualNetworks.length; i++) {
@@ -128,7 +128,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
   }
 
   if (isNetworkSpecified(container)) {
-    const individualNetworks: string[] = container.Labels["network.to.connect"].split(',')
+    const individualNetworks: string[] = container.Labels["tj.horner.dragonify.networks"].split(',')
     logger.info(`Connecting ${container.Names} to ${individualNetworks}`)
 
     for (let i = 0; i < individualNetworks.length; i++) {
