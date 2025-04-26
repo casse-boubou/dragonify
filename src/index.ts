@@ -150,8 +150,8 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
 
 function isNetworkDragonify(network: Docker.NetworkInspectInfo) {
-  if (network.IPAM !== undefined){
-    return network.IPAM["Config"] !== undefined
+  if (network.Labels !== undefined){
+    return network.Labels["tj.horner.dragonify.networks"] !== undefined
   }
   return false
 }
@@ -163,8 +163,8 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
   const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels["tj.horner.dragonify.networks"])
   for (const network of dragonifyNetworks) {
     if (isNetworkDragonify(network)) {
-      if ( network.IPAM !== undefined) {
-        logger.info(`1111111111111111111111111 ${network.IPAM[0]}`)
+      if ( network.Labels !== undefined) {
+        logger.info(`1111111111111111111111111 ${network.Labels[0]}`)
         logger.info(`1111111111111111111111111 empty ${network.Name}`)
       }
     }
@@ -174,7 +174,6 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
           logger.info(`6666666666666666666666666 ${key}`)
-          logger.info(`6666666666666666666666666 ${key[config]}`)
           logger.info(`6666666666666666666666666 empty ${network.Name}`)
           return false;
         }
@@ -182,7 +181,7 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
       }
       return true;
     }
-    if (isEmpty(network.IPAM)) {
+    if (isEmpty(network.Labels)) {
       logger.info(`77777777777777777777777 empty ${network.Name}`)
     }
   }
