@@ -148,10 +148,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
   }
 }
 
-function isDragonifyNetworktrue(name: string) {
-  logger.info(`1111111111111111111111 ${name} `)
-  return name === "True"
-}
+
 function isDragonifyNetwork(network: any) {
   logger.info(`22222222222222222222222 ${network}`)
   return network.Labels["tj.horner.dragonify.networks"]
@@ -163,8 +160,9 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
   const existingNetworks = await docker.listNetworks()
 
   const dragonifyNetworks = existingNetworks.filter(isDragonifyNetwork)
-  logger.info(`333333333333333333 All Network are ${existingNetworks.filter(isDragonifyNetwork)}`)
+  const dragonifyNetworks2 = existingNetworks.filter(existingNetworks.Labels["tj.horner.dragonify.networks"])
   logger.info(`333333333333333333 All Network are ${dragonifyNetworks}`)
+  logger.info(`333333333333333333 All Network are ${dragonifyNetworks2}`)
   for (const network of dragonifyNetworks) {
     logger.info(`444444444444444444444 All Network are ${dragonifyNetworks}`)
   }
