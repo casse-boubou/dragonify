@@ -151,11 +151,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
 
 
-const existingNetworks = await docker.listNetworks({
-  filters: JSON.stringify({
-    labels: ['tj.horner.dragonify.networks'],
-  }),
-})
+
 
 async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
 
