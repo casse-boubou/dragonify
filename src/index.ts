@@ -168,8 +168,8 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
       }
     }
     const containers = network.Containers
-    for (const container of containers) {
-      logger.info(`777777777777777777777777 All Network are ${container}`)
+    for (let i = 0; i < containers.length; i++){
+      logger.info(`777777777777777777777777 All Network are ${containers[i]}`)
     }
   }
 }
