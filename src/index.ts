@@ -2,24 +2,46 @@ import Docker from "dockerode"
 import { getEventStream } from "./docker-events"
 import { logger } from "./logger"
 
+const NETWORK_NAME = "apps-internal"
+const CONNECT_ALL_ENABLE: string | undefined = process.env.CONNECT_ALL
 const CUSTOM_NETWORK_NAMES: string | undefined = process.env.CUSTOMS_NETWORKS
-var networks_names: string[] = ["apps-internal"]
+
+
+if (CONNECT_ALL_ENABLE !== undefined) {
+  var CONNECT_ALL: string | undefined = CONNECT_ALL_ENABLE.toLowerCase( )
+}
+else {
+  var CONNECT_ALL: string | undefined = "false"
+}
+var networks_liste: string[] = [NETWORK_NAME]
 if (CUSTOM_NETWORK_NAMES !== undefined) {
-  var networks_names: string[] = CUSTOM_NETWORK_NAMES.split(',')
+  var networks_liste: string[] = CUSTOM_NETWORK_NAMES.split(',')
+}
+else {
+  var networks_liste: string[] = []
 }
 
 async function setUpNetwork(docker: Docker) {
-  for (let i = 0; i < networks_names.length; i++) {
-    logger.info(`Setting up network ${networks_names[i]}`)
+  const networkList:string[] = []
+  if (CONNECT_ALL !== "false" ) {
+    logger.info(`${NETWORK_NAME} will be created for connect all your containers`)
+    networkList.push(NETWORK_NAME)
+  }
+  for (let i = 0; i < networks_liste.length; i++) {
+    networkList.push(networks_liste[i])
+  }
 
-    const existingNetworks = await docker.listNetworks({filters: {name: [networks_names[i]]}})
+  for (let i = 0; i < networkList.length; i++) {
+    logger.info(`Setting up network ${networkList[i]}`)
+
+    const existingNetworks = await docker.listNetworks({filters: {name: [networkList[i]]}})
     if (existingNetworks.length === 1) {
-      logger.info(`Network ${networks_names[i]} already exists`)
+      logger.info(`Network ${networkList[i]} already exists`)
     }
 
     else {
       await docker.createNetwork({
-        Name: networks_names[i],
+        Name: networkList[i],
         Driver: "bridge",
         Internal: true,
         Labels: {
@@ -27,11 +49,10 @@ async function setUpNetwork(docker: Docker) {
         },
       })
 
-      logger.info(`Network ${networks_names[i]} created`)
+      logger.info(`Network ${networkList[i]} created`)
     }
   }
 }
-
 function getDnsName(container: Docker.ContainerInfo) {
   const service = container.Labels["com.docker.compose.service"]
   const project = container.Labels["com.docker.compose.project"]
@@ -98,21 +119,30 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
 
   const appContainers = containers.filter(isIxAppContainer)
   for (const container of appContainers) {
+    const networkList:string[] = []
+    if (CONNECT_ALL !== "false" ) {
+      logger.info(`${container.Names} will be connected to all others`)
+      networkList.push(NETWORK_NAME)
+    }
     if (isNetworkSpecified(container)) {
       const individualNetworks: string[] = container.Labels["tj.horner.dragonify.networks"].split(',')
-      logger.info(`Connecting ${container.Names} to ${individualNetworks}`)
 
       for (let i = 0; i < individualNetworks.length; i++) {
-        if (isContainerInNetwork(container, individualNetworks[i])) {
-          logger.debug(`Container ${container.Id} already connected to network ${individualNetworks[i]}`)
-          continue
-        }
-
-        await connectContainerToAppsNetwork(docker, container, individualNetworks[i])
+        networkList.push(individualNetworks[i])
       }
-
-      logger.info(`${container.Names} is connected to all its networks`)
     }
+
+    for (let i = 0; i < networkList.length; i++) {
+      if (isContainerInNetwork(container, networkList[i])) {
+        logger.debug(`Container ${container.Id} already connected to network ${networkList[i]}`)
+        continue
+      }
+      logger.info(`Connecting ${container.Names} to ${networkList[i]}`)
+      await connectContainerToAppsNetwork(docker, container, networkList[i])
+    }
+
+    logger.info(`${container.Names} is connected to all its networks`)
+    
   }
 
   logger.info("All configured app containers connected to their network")
@@ -130,22 +160,32 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
     return
   }
 
+  logger.debug(`New container started: ${container.Id}`)
+
+  const networkList:string[] = []
+  if (CONNECT_ALL !== "false" ) {
+    logger.info(`${container.Names} will be connected to all others`)
+    networkList.push(NETWORK_NAME)
+  }
   if (isNetworkSpecified(container)) {
     const individualNetworks: string[] = container.Labels["tj.horner.dragonify.networks"].split(',')
-    logger.info(`Connecting ${container.Names} to ${individualNetworks}`)
 
     for (let i = 0; i < individualNetworks.length; i++) {
-      if (isContainerInNetwork(container, individualNetworks[i])) {
-        logger.debug(`Container ${container.Id} already connected to network ${individualNetworks[i]}`)
-        return
-      }
+      networkList.push(individualNetworks[i])
+    }
+  }
 
-      logger.debug(`New container started: ${container.Id}`)
-      await connectContainerToAppsNetwork(docker, container, individualNetworks[i])
+  for (let i = 0; i < networkList.length; i++) {
+    if (isContainerInNetwork(container, networkList[i])) {
+      logger.debug(`Container ${container.Id} already connected to network ${networkList[i]}`)
+      return
     }
 
-    logger.info(`${container.Names} is connected to all its networks`)
+    logger.info(`Connecting ${container.Names} to ${networkList[i]}`)
+    await connectContainerToAppsNetwork(docker, container, networkList[i])
   }
+
+  logger.info(`${container.Names} is connected to all its networks`)
 }
 
 async function main() {
