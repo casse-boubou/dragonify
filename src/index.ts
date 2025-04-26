@@ -173,7 +173,7 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
       return true;
     }
 
-    if (isEmpty(network.Containers)) {
+    if (isEmpty(network.Labels)) {
       logger.info(`44444444444444444444444444 NAME ${network.Name}`)
     }
     else {
