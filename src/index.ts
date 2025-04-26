@@ -160,7 +160,7 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
     logger.info(`444444444444444444444 All Network are ${dragonifyNetworks}`)
     logger.info(`444444444444444444444 All Network are ${network.Containers}`)
     if (network.Containers !== undefined ) {
-      logger.info(`5555555555555555 All Network are ${network.Containers}`)
+      logger.info(`5555555555555555 All Network are ${network.Containers[0]}`)
     }
   }
 }
