@@ -156,32 +156,13 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
 
   const existingNetworks = await docker.listNetworks()
 
-  const dragonifyNetworks = existingNetworks.filter({
-    NetworkInspectInfo: ['tj.horner.dragonify.networks'],
-  })
-  for (let i = 0; i < existingNetworks.length; i++) {
-    await docker.networks.inspect(existingNetworks, {
-      filters: JSON.stringify({
-        labels: ['tj.horner.dragonify.networks'],
-      }),
-    })
-    logger.info(`11111111111111111111 All Network are `)
+  const dragonifyNetworks = existingNetworks
+  for (const network of dragonifyNetworks) {
+    const labb: string = network.Labels["tj.horner.dragonify.networks"]
+    logger.info(`11111111111111111111 All Network are ${network}`)
+    logger.info(`22222222222222222 All Network are ${labb}`)
+    logger.info(`333333333333333333 All Network are ${dragonifyNetworks}`)
   }
-  for (let i = 0; i < existingNetworks.length; i++) {
-    const dragonifyNetworks = await docker.network.inspect({
-      filters: JSON.stringify({
-        labels: ['tj.horner.dragonify.networks'],
-      }),
-    })
-    logger.info(`22222222222222222 All Network are ${dragonifyNetworks}`)
-  }
-  if (existingNetworks.length === 1) {
-    logger.info(`333333333333333333 All Network are ${existingNetworks}`)
-  }
-
-  else {
-    logger.info(`44444444444444444444 All Network are ${existingNetworks}`)
-      }
     }
 
 
