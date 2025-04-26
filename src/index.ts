@@ -157,19 +157,24 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
   const existingNetworks = await docker.listNetworks()
   const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels["tj.horner.dragonify.networks"])
   for (const network of dragonifyNetworks) {
-    logger.info(`444444444444444444444 All Network are ${network.Containers}`)
-    if (Object.getOwnPropertyNames(network.Containers).length === 0 ) {
-      logger.info(`5555555555555555 All Network are ${network.Name}`)
-      const net = Object.getOwnPropertyNames(network.Containers)
-      logger.info(`5555555555555555 All Network are ${typeof net}`)
-      logger.info(`5555555555555555 All Network are ${typeof network.Containers}`)
-      for (const nooo of net){
-        logger.info(`66666666666666666666 All Network are ${nooo}`)
-      }
+    logger.info(`444444444444444444444 ${network.Labels["tj.horner.dragonify.networks"]}`)
+    if (Object.keys(network.Containers).length === 0 ) {
+      logger.info(`5555555555555555 empty ${network.Name}`)
     }
     const containers = network.Containers
-    for (const container in containers) {
-      logger.info(`777777777777777777777777 All Network are ${container}`)
+    if (Object.entries(containers).length === 0 ) {
+      logger.info(`6666666666666666666 empty ${network.Name}`)
+    }
+    function isEmpty(obj: Record<string, any>): boolean {
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (isEmpty(network.Containers)) {
+      logger.info(`77777777777777777777777 empty ${network.Name}`)
     }
   }
 }
