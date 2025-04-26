@@ -23,7 +23,7 @@ async function setUpNetwork(docker: Docker) {
         Driver: "bridge",
         Internal: true,
         Labels:
-          - "tj.horner.dragonify.networks:true",
+          - tj.horner.dragonify.networks=true,
       })
 
       logger.info(`Network ${networks_names[i]} created`)
