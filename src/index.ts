@@ -21,6 +21,13 @@ else {
   var networks_liste: string[] = []
 }
 
+
+
+
+
+
+
+
 async function setUpNetwork(docker: Docker) {
   const networkList:string[] = []
   if (CONNECT_ALL !== "false" ) {
@@ -88,6 +95,21 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
   if (prohibitedNetworkMode(container.HostConfig.NetworkMode)) {
     logger.debug(`Container ${container.Id} is using network mode ${container.HostConfig.NetworkMode}, skipping`)
     return
+  }
+
+  const isExistingNetwork = await docker.listNetworks({filters: {name: [network_name]}})
+  if (isExistingNetwork.length !== 1) {
+    logger.info(`Network ${isExistingNetwork}  don't exists yet, creating...`)
+    await docker.createNetwork({
+      Name: isExistingNetwork,
+      Driver: "bridge",
+      Internal: true,
+      Labels: {
+        "tj.horner.dragonify.networks": "true"
+      },
+    })
+
+    logger.info(`Network ${isExistingNetwork} created`)
   }
 
   const network = docker.getNetwork(network_name)
