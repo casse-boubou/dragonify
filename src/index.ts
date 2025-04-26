@@ -152,36 +152,6 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
 
 
-async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
-
-  const existingNetworks = await docker.listNetworks()
-  const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels["tj.horner.dragonify.networks"])
-
-  for (const network of dragonifyNetworks) {
-
-    function isEmpty(obj: any | undefined): boolean {
-      for (const key in obj) {
-        logger.info(`222222222222222222222222 KEY ${key}`)
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          logger.info(`1111111111111111111111111 KEY ${key}`)
-          logger.info(`1111111111111111111111111 NAME ${network.Name}`)
-          return false;
-        }
-        logger.info(`222222222222222222222222 KEY ${key}`)
-      }
-      logger.info(`333333333333333333333333 OBJ ${obj}`)
-      return true;
-    }
-
-    if (isEmpty(network.Labels)) {
-      logger.info(`44444444444444444444444444 NAME ${network.Name}`)
-    }
-    else {
-      logger.info(`55555555555555555555555555 NAME ${network.Name}`)
-    }
-  }
-}
-
 
 
 
@@ -202,14 +172,7 @@ async function main() {
     connectNewContainerToAppsNetwork(docker, event.Actor["ID"])
   })
 
-  events.on("container.stop", (event) => {
-    const containerAttributes = event.Actor.Attributes
-    if (!isIxProjectName(containerAttributes["com.docker.compose.project"])) {
-      return
-    }
 
-    removeEmptyCreatedNetwork(docker, event.Actor["ID"])
-  })
 }
 
 main()
