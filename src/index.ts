@@ -171,8 +171,10 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
     function isEmpty(obj: any | undefined): boolean {
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          logger.info(`6666666666666666666666666 ${key}`)
           return false;
         }
+        logger.info(`555555555555555555 ${key}`)
       }
       return true;
     }
