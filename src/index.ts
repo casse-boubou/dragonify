@@ -149,12 +149,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 }
 
 
-function isNetworkDragonify(network: Docker.NetworkInspectInfo) {
-  if (network.Labels !== undefined){
-    return network.Labels["tj.horner.dragonify.networks"] !== undefined
-  }
-  return false
-}
+
 
 
 async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
@@ -162,27 +157,23 @@ async function removeEmptyCreatedNetwork(docker: Docker, containerId: string) {
   const existingNetworks = await docker.listNetworks()
   const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels["tj.horner.dragonify.networks"])
   for (const network of dragonifyNetworks) {
-    if (isNetworkDragonify(network)) {
-      if ( network.Labels !== undefined) {
-        logger.info(`1111111111111111111111111 ${network.Labels[0]}`)
-        logger.info(`1111111111111111111111111 empty ${network.Name}`)
-      }
-    }
-    logger.info(`444444444444444444444 ${network.Containers}`)
-    logger.info(`444444444444444444444 empty ${network.Name}`)
     function isEmpty(obj: any | undefined): boolean {
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          logger.info(`6666666666666666666666666 ${key}`)
-          logger.info(`6666666666666666666666666 empty ${network.Name}`)
+          logger.info(`1111111111111111111111111 KEY ${key}`)
+          logger.info(`1111111111111111111111111 NAME ${network.Name}`)
           return false;
         }
-        logger.info(`555555555555555555 ${key}`)
+        logger.info(`222222222222222222222222 KEY ${key}`)
       }
+      logger.info(`333333333333333333333333 OBJ ${obj}`)
       return true;
     }
     if (isEmpty(network.Labels)) {
-      logger.info(`77777777777777777777777 empty ${network.Name}`)
+      logger.info(`44444444444444444444444444 NAME ${network.Name}`)
+    }
+    else {
+      logger.info(`55555555555555555555555555 NAME ${network.Name}`)
     }
   }
 }
