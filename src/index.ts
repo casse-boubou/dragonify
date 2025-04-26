@@ -23,7 +23,7 @@ else {
 
 async function setUpNetwork(docker: Docker) {
   const networkList:string[] = []
-  if (CONNECT_ALL === "true" ) {
+  if (CONNECT_ALL !== "false" ) {
     logger.info(`${NETWORK_NAME} will be created for connect all your containers`)
     networkList.push(NETWORK_NAME)
   }
@@ -156,7 +156,7 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
   const appContainers = containers.filter(isIxAppContainer)
   for (const container of appContainers) {
     const networkList:string[] = []
-    if (CONNECT_ALL === "true" ) {
+    if (CONNECT_ALL !== "false" ) {
       logger.info(`${container.Names} will be connected to all others`)
       networkList.push(NETWORK_NAME)
     }
@@ -207,7 +207,7 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
   logger.debug(`New container started: ${container.Id}`)
 
   const networkList:string[] = []
-  if (CONNECT_ALL === "true" ) {
+  if (CONNECT_ALL !== "false" ) {
     logger.info(`${container.Names} will be connected to all others`)
     networkList.push(NETWORK_NAME)
   }
