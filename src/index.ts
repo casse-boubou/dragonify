@@ -49,7 +49,7 @@ async function setUpNetwork(docker: Docker) {
         logger.info(`Network 3333333333333333333333`)
         logger.info(`Network 3333333333333333333333 ${network.Id} ()`)
         logger.info(`Network 3333333333333333333333 ${container} ()`)
-        logger.info(`Network 3333333333333333333333 ${container[i]} ()`)
+        logger.info(`Network 3333333333333333333333 ${container[0]} ()`)
         //await docker.getNetwork(network.Id).disconnect(container)
       }
 
