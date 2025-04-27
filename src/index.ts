@@ -267,7 +267,7 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
 
   for (const network of dragonifyNetworks) {
 
-    async function isEmpty({ obj }: { obj: any | undefined }): boolean {
+    async function isEmpty({ obj }: { obj: any | undefined }): Promise<boolean> {
       for (const key in obj) {
         logger.info(`222222222222222222222222 KEY ${key}`)
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -280,7 +280,7 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
       return true;
     }
 
-    if (isEmpty({ obj: network.Containers })) {
+    if (await isEmpty({ obj: network.Containers })) {
       logger.info(`44444444444444444444444444 NAME ${network.Name}`)
     }
     else {
