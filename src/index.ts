@@ -36,27 +36,23 @@ async function setUpNetwork(docker: Docker) {
   }
   else {
     const existingNetworks = await docker.listNetworks()
-    logger.info(`Network 11111111111111111111111`)
     const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork?.["Name"] === NETWORK_NAME).length === 1
-    logger.info(`Network 11111111111111111111111 ${NETWORK_NAME_exist}`)
     if (NETWORK_NAME_exist) {
-      logger.info(`Network 2222222222222222222222`)
       const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork?.["Name"] === NETWORK_NAME)
       const network = await docker.getNetwork(networkID_to_remove[0].Id).inspect()
       const containers = network.Containers ?? {}
 
       for (let i = 0; i < containers.length; i++) {
         logger.info(`Network 3333333333333333333333`)
+        logger.info(`Network 3333333333333333333333 ${network.Id} ()`)
+        logger.info(`Network 3333333333333333333333 ${containers[i]} ()`)
         await docker.getNetwork(network.Id).disconnect(containers[i])
       }
 
-      logger.info(`Network 4444444444444444444444444`)
       logger.info(`Network "${network.Name}" is now empty and will be deleted.`)
       await docker.getNetwork(network.Id).remove()
 
-
     }
-
   }
 
   for (let i = 0; i < networks_liste.length; i++) {
