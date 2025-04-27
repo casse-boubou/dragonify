@@ -44,12 +44,12 @@ async function setUpNetwork(docker: Docker) {
       const containers = network.Containers ?? {}
       logger.info(`Network 2222222222222222222222 ${containers} ()`)
       logger.info(`Network 2222222222222222222222 ${containers[0]} ()`)
-      logger.info(`Network 2222222222222222222222 ${containers.length} ()`)
 
-      for (let i = 0; i < containers.length; i++) {
+      for (const container of Object.keys(containers)) {
         logger.info(`Network 3333333333333333333333`)
         logger.info(`Network 3333333333333333333333 ${network.Id} ()`)
-        logger.info(`Network 3333333333333333333333 ${Object.keys(containers)} ()`)
+        logger.info(`Network 3333333333333333333333 ${container} ()`)
+        logger.info(`Network 3333333333333333333333 ${container[0]} ()`)
         //await docker.getNetwork(network.Id).disconnect(container)
       }
 
