@@ -42,6 +42,8 @@ async function setUpNetwork(docker: Docker) {
       const network = await docker.getNetwork(networkID_to_remove[0].Id).inspect()
       logger.info(`Network 1111111111111111111111 ${networkID_to_remove[0].Id} ()`)
       const containers = network.Containers ?? {}
+      logger.info(`Network 2222222222222222222222 ${containers} ()`)
+      logger.info(`Network 2222222222222222222222 ${containers[0]} ()`)
 
       for (let i = 0; i < containers.length; i++) {
         logger.info(`Network 3333333333333333333333`)
@@ -51,7 +53,7 @@ async function setUpNetwork(docker: Docker) {
       }
 
       logger.info(`Network "${network.Name}" is now empty and will be deleted.`)
-      await docker.getNetwork(network.Id).remove()
+      //await docker.getNetwork(network.Id).remove()
 
     }
   }
