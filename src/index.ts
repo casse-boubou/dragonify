@@ -39,8 +39,10 @@ async function setUpNetwork(docker: Docker) {
     logger.info(`Network 11111111111111111111111`)
     const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.["apps-internal"]).length === 1
     logger.info(`Network 11111111111111111111111 ${NETWORK_NAME_exist}`)
-    const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels?.["tj.horner.dragonify.networks"])
+    const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork?.["Name"])
     logger.info(`Network 11111111111111111111111 ${networkID_to_remove} (vide?)`)
+    const labelssssssssssssss = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels?.["tj.horner.dragonify.networks"])
+    logger.info(`Network 11111111111111111111111 ${labelssssssssssssss} (vide?)`)
     if (NETWORK_NAME_exist) {
       logger.info(`Network 2222222222222222222222`)
       const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.["apps-internal"])
