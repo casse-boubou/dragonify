@@ -53,6 +53,7 @@ async function setUpNetwork(docker: Docker) {
     }
   }
 }
+
 function getDnsName(container: Docker.ContainerInfo) {
   const service = container.Labels["com.docker.compose.service"]
   const project = container.Labels["com.docker.compose.project"]
@@ -69,6 +70,21 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
   if (prohibitedNetworkMode(container.HostConfig.NetworkMode)) {
     logger.debug(`Container ${container.Id} is using network mode ${container.HostConfig.NetworkMode}, skipping`)
     return
+  }
+
+  const isExistingNetwork = await docker.listNetworks({filters: {name: [network_name]}})
+  if (isExistingNetwork.length !== 1) {
+    logger.info(`Network ${network_name} need by ${container.Names} don't exists yet, creating...`)
+    await docker.createNetwork({
+      Name: network_name,
+      Driver: "bridge",
+      Internal: true,
+      Labels: {
+        "tj.horner.dragonify.networks": "true"
+      },
+    })
+
+    logger.info(`Network ${network_name} created`)
   }
 
   const network = docker.getNetwork(network_name)
