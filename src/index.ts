@@ -38,8 +38,8 @@ async function setUpNetwork(docker: Docker) {
     const existingNetworks = await docker.listNetworks()
     const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME]).length === 1
     if (NETWORK_NAME_exist) {
-      const network_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME])
-      const network = await docker.getNetwork(network_to_remove).inspect()
+      const network_to_remove = Object.keys(existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME]))
+      const network = await docker.getNetwork(network_to_remove.Id).inspect()
       const containers = network.Containers ?? {}
 
       for (let i = 0; i < containers.length; i++) {
