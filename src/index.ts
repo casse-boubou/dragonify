@@ -46,7 +46,7 @@ async function setUpNetwork(docker: Docker) {
       for (const containerID of Object.keys(containers)) {
         logger.info(`Network 3333333333333333333333`)
         logger.info(`Network 3333333333333333333333 ${containerID} ()`)
-        await docker.getNetwork(network.Id).disconnect(containerID)
+        await docker.getNetwork(network.Id).disconnect("1abea992c384c17ce32d83b9dfca2ed4cbfc5ba684183391e423e1a6d874ca9b")
         logger.debug(`Container "${containerID}" is now disconnected from "${network.Name}".`)
       }
 
