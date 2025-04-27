@@ -44,6 +44,7 @@ async function setUpNetwork(docker: Docker) {
       const containers = network.Containers ?? {}
       logger.info(`Network 2222222222222222222222 ${containers} ()`)
       logger.info(`Network 2222222222222222222222 ${containers[0]} ()`)
+      logger.info(`Network 2222222222222222222222 ${containers.length} ()`)
 
       for (let i = 0; i < containers.length; i++) {
         logger.info(`Network 3333333333333333333333`)
