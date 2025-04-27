@@ -31,13 +31,14 @@ else {
 async function setUpNetwork(docker: Docker) {
   const networkList:string[] = []
   if (CONNECT_ALL !== "false" ) {
-    logger.info(`${NETWORK_NAME} will be created for connect all your containers`)
+    logger.info(`"${NETWORK_NAME}" will be created for connect all your containers`)
     networkList.push(NETWORK_NAME)
   }
   else {
     const existingNetworks = await docker.listNetworks()
     logger.info(`Network 11111111111111111111111`)
     const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME]).length === 1
+    logger.info(`Network 11111111111111111111111 ${NETWORK_NAME_exist}`)
     if (NETWORK_NAME_exist) {
       logger.info(`Network 2222222222222222222222`)
       const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME])
@@ -63,11 +64,11 @@ async function setUpNetwork(docker: Docker) {
   }
 
   for (let i = 0; i < networkList.length; i++) {
-    logger.info(`Setting up network ${networkList[i]}`)
+    logger.info(`Setting up network "${networkList[i]}"`)
 
     const existingNetworks = await docker.listNetworks({filters: {name: [networkList[i]]}})
     if (existingNetworks.length === 1) {
-      logger.info(`Network ${networkList[i]} already exists`)
+      logger.info(`Network "${networkList[i]}" already exists`)
     }
 
     else {
@@ -80,7 +81,7 @@ async function setUpNetwork(docker: Docker) {
         },
       })
 
-      logger.info(`Network ${networkList[i]} created`)
+      logger.info(`Network "${networkList[i]}" created`)
     }
   }
 }
@@ -123,7 +124,7 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
 
   const isExistingNetwork = await docker.listNetworks({filters: {name: [network_name]}})
   if (isExistingNetwork.length !== 1) {
-    logger.info(`Network ${network_name} need by ${container.Names} don't exists yet, creating...`)
+    logger.info(`Network "${network_name}" need by ${container.Names} don't exists yet, creating...`)
     await docker.createNetwork({
       Name: network_name,
       Driver: "bridge",
@@ -133,13 +134,13 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
       },
     })
 
-    logger.info(`Network ${network_name} created`)
+    logger.info(`Network "${network_name}" created`)
   }
 
   const network = docker.getNetwork(network_name)
   const dnsName = getDnsName(container)
 
-  logger.debug(`Connecting container ${container.Id} to network ${network_name} as ${dnsName}`)
+  logger.debug(`Connecting container ${container.Id} to network "${network_name}" as ${dnsName}`)
 
   try {
     await network.connect({
@@ -149,11 +150,11 @@ async function connectContainerToAppsNetwork(docker: Docker, container: Docker.C
       }
     })
   } catch (e: any) {
-    logger.error(`Failed to connect container ${container.Id} to network ${network_name}:`, e)
+    logger.error(`Failed to connect container ${container.Id} to network "${network_name}":`, e)
     return
   }
 
-  logger.info(`Container ${container.Id} (aka ${container.Names.join(", ")}) connected to network ${network_name} as ${dnsName}`)
+  logger.info(`Container ${container.Id} (aka ${container.Names.join(", ")}) connected to network "${network_name}" as ${dnsName}`)
 }
 
 
@@ -216,10 +217,10 @@ async function connectAllContainersToAppsNetwork(docker: Docker) {
 
     for (let i = 0; i < networkList.length; i++) {
       if (isContainerInNetwork(container, networkList[i])) {
-        logger.debug(`Container ${container.Id} already connected to network ${networkList[i]}`)
+        logger.debug(`Container ${container.Id} already connected to network "${networkList[i]}"`)
         continue
       }
-      logger.info(`Connecting ${container.Names} to ${networkList[i]}`)
+      logger.info(`Connecting ${container.Names} to "${networkList[i]}"`)
       await connectContainerToAppsNetwork(docker, container, networkList[i])
     }
 
@@ -267,11 +268,11 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
   for (let i = 0; i < networkList.length; i++) {
     if (isContainerInNetwork(container, networkList[i])) {
-      logger.debug(`Container ${container.Id} already connected to network ${networkList[i]}`)
+      logger.debug(`Container ${container.Id} already connected to network "${networkList[i]}"`)
       return
     }
 
-    logger.info(`Connecting ${container.Names} to ${networkList[i]}`)
+    logger.info(`Connecting ${container.Names} to "${networkList[i]}"`)
     await connectContainerToAppsNetwork(docker, container, networkList[i])
   }
 
