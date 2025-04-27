@@ -34,6 +34,26 @@ async function setUpNetwork(docker: Docker) {
     logger.info(`${NETWORK_NAME} will be created for connect all your containers`)
     networkList.push(NETWORK_NAME)
   }
+  else {
+    const existingNetworks = await docker.listNetworks()
+    const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME]).length === 1
+    if (NETWORK_NAME_exist) {
+      const network_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME])
+      const network = await docker.getNetwork(network_to_remove.Id).inspect()
+      const containers = network.Containers ?? {}
+
+      for (let i = 0; i < containers.length; i++) {
+        await docker.getNetwork(network.Id).disconnect(containers[i])
+      }
+
+      logger.info(`Network "${network.Name}" is now empty and will be deleted.`)
+      await docker.getNetwork(network.Id).remove()
+
+
+    }
+
+  }
+
   for (let i = 0; i < networks_liste.length; i++) {
     networkList.push(networks_liste[i])
   }
@@ -267,16 +287,16 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
   const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels?.["tj.horner.dragonify.networks"])
 
   for (const networkSummary of dragonifyNetworks) {
-    const network = await docker.getNetwork(networkSummary.Id).inspect();
+    const network = await docker.getNetwork(networkSummary.Id).inspect()
     const containers = network.Containers ?? {}
     const isEmpty = Object.keys(containers).length === 0
     
     if (isEmpty) {
-      logger.info(`Network "${network.Name}" is empty and will be deleted.`)
+      logger.info(`Network "${network.Name}" is now empty and will be deleted.`)
       await docker.getNetwork(network.Id).remove()
     }
     else {
-      logger.info(`Network "${network.Name}" contains containers : ${Object.keys(containers).join(", ")}`)
+      logger.debug(`Network "${network.Name}" contains containers : ${Object.keys(containers).join(", ")}`)
     }
   }
 }
