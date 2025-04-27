@@ -270,21 +270,7 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
     const network = await docker.getNetwork(networkSummary.Id).inspect();
     const containers = network.Containers ?? {}
     const isEmpty = Object.keys(containers).length === 0
-
-
-    const lalalaal = Object.getOwnPropertyNames(containers).length
-    const lalalaal2 = Object.getOwnPropertyNames(containers)
-    for (let i = 0; i < lalalaal2.length; i++) {
-      logger.info(`1111111111 "${Object.keys(lalalaal2[i])}"`)
-    }
-    logger.info(`lalalaal "${lalalaal}"`)
-    logger.info(`lalalaal2 "${lalalaal2}"`)
-
-
-
-
-
-
+    
     if (isEmpty) {
       logger.info(`Network "${network.Name}" is empty and can be deleted.`)
     }
