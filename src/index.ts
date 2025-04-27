@@ -45,11 +45,12 @@ async function setUpNetwork(docker: Docker) {
       logger.info(`Network 2222222222222222222222 ${containers} ()`)
       logger.info(`Network 2222222222222222222222 ${containers[0]} ()`)
 
-      for (let i = 0; i < containers.length; i++) {
+      for (const container of containers) {
         logger.info(`Network 3333333333333333333333`)
         logger.info(`Network 3333333333333333333333 ${network.Id} ()`)
-        logger.info(`Network 3333333333333333333333 ${containers[i]} ()`)
-        await docker.getNetwork(network.Id).disconnect(containers[i])
+        logger.info(`Network 3333333333333333333333 ${container} ()`)
+        logger.info(`Network 3333333333333333333333 ${container[i]} ()`)
+        //await docker.getNetwork(network.Id).disconnect(container)
       }
 
       logger.info(`Network "${network.Name}" is now empty and will be deleted.`)
