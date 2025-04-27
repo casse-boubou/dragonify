@@ -263,11 +263,12 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 async function removeEmptyCreatedNetwork(docker: Docker) {
 
   const existingNetworks = await docker.listNetworks()
-  const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels["tj.horner.dragonify.networks"])
+  const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels?.["tj.horner.dragonify.networks"])
 
-  for (const network of dragonifyNetworks) {
+  for (const networkSummary of dragonifyNetworks) {
+    const network = await docker.getNetwork(networkSummary.Id).inspect();
 
-    async function isEmpty({ obj }: { obj: any | undefined }): Promise<boolean> {
+    function isEmpty(obj: any | undefined): boolean {
       for (const key in obj) {
         logger.info(`222222222222222222222222 KEY ${key}`)
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -280,7 +281,7 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
       return true;
     }
 
-    if (await isEmpty({ obj: network.Containers })) {
+    if (isEmpty(network.Containers)) {
       logger.info(`44444444444444444444444444 NAME ${network.Name}`)
     }
     else {
