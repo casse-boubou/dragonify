@@ -36,21 +36,18 @@ async function setUpNetwork(docker: Docker) {
   }
   else {
     const existingNetworks = await docker.listNetworks()
-    const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork?.["Name"] === NETWORK_NAME).length === 1
+    const NETWORK_NAME_exist = existingNetworks.find((thisnetwork: any) => thisnetwork.Name === NETWORK_NAME)
     if (NETWORK_NAME_exist) {
-      const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork?.["Name"] === NETWORK_NAME)
-      const network = await docker.getNetwork(networkID_to_remove[0].Id).inspect()
-      logger.info(`Network 1111111111111111111111 ${networkID_to_remove[0].Id} ()`)
+      logger.info(`Network "${NETWORK_NAME}" is present but CONNECT_ALL set to "False". This network will be remove.`)
+      const network = await docker.getNetwork(NETWORK_NAME_exist.Id).inspect()
       const containers = network.Containers ?? {}
 
       for (const containerID of Object.keys(containers)) {
-        logger.info(`Network 3333333333333333333333`)
-        logger.info(`Network 3333333333333333333333 ${containerID} ()`)
         await docker.getNetwork(network.Id).disconnect({ Container: containerID })
         logger.debug(`Container "${containerID}" is now disconnected from "${network.Name}".`)
       }
 
-      logger.info(`Network "${network.Name}" is now empty and will be deleted.`)
+      logger.debug(`Network "${network.Name}" is now empty and will be deleted.`)
       await docker.getNetwork(network.Id).remove()
 
     }
