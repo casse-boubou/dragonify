@@ -39,6 +39,8 @@ async function setUpNetwork(docker: Docker) {
     logger.info(`Network 11111111111111111111111`)
     const NETWORK_NAME_exist = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME]).length === 1
     logger.info(`Network 11111111111111111111111 ${NETWORK_NAME_exist}`)
+    const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME])
+    logger.info(`Network 11111111111111111111111 ${networkID_to_remove}`)
     if (NETWORK_NAME_exist) {
       logger.info(`Network 2222222222222222222222`)
       const networkID_to_remove = existingNetworks.filter((thisnetwork: any) => thisnetwork.Name?.[NETWORK_NAME])
