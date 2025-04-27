@@ -27,6 +27,25 @@ async function setUpNetwork(docker: Docker) {
     logger.info(`${NETWORK_NAME} will be created for connect all your containers`)
     networkList.push(NETWORK_NAME)
   }
+  else {
+    const existingNetworks = await docker.listNetworks()
+    const NETWORK_NAME_exist = existingNetworks.find((thisnetwork: any) => thisnetwork.Name === NETWORK_NAME)
+    if (NETWORK_NAME_exist) {
+      logger.info(`Network "${NETWORK_NAME}" is present but CONNECT_ALL set to "False". This network will be remove.`)
+      const network = await docker.getNetwork(NETWORK_NAME_exist.Id).inspect()
+      const containers = network.Containers ?? {}
+
+      for (const containerID of Object.keys(containers)) {
+        await docker.getNetwork(network.Id).disconnect({ Container: containerID })
+        logger.debug(`Container "${containerID}" is now disconnected from "${network.Name}".`)
+      }
+
+      logger.debug(`Network "${network.Name}" is now empty and will be deleted.`)
+      await docker.getNetwork(network.Id).remove()
+
+    }
+  }
+
   for (let i = 0; i < networks_liste.length; i++) {
     networkList.push(networks_liste[i])
   }
