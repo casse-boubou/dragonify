@@ -257,33 +257,24 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
 
 
-interface DragonifyNetworkSummary extends Docker.NetworkInspectInfo {
-  Labels: Record<string, string>
-}
+
+
+
 
 
 async function removeEmptyCreatedNetwork(docker: Docker) {
   const existingNetworks = await docker.listNetworks()
-
-
-
   const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels?.["tj.horner.dragonify.networks"])
-
-
-
 
   for (const networkSummary of dragonifyNetworks) {
     const network = await docker.getNetwork(networkSummary.Id).inspect();
-
     const containers = network.Containers ?? {}
-
     const isEmpty = Object.keys(containers).length === 0
-
     if (isEmpty) {
-      console.info(`Network "${network.Name}" is empty and can be deleted.`)
+      logger.info(`Network "${network.Name}" is empty and can be deleted.`)
     }
     else {
-      console.info(`Network "${network.Name}" contains containers : ${Object.keys(containers).join(", ")}`)
+      logger.info(`Network "${network.Name}" contains containers : ${Object.keys(containers.Name).join(", ")}`)
     }
   }
 }
