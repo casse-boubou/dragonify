@@ -274,10 +274,11 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
 
     const lalalaal = Object.getOwnPropertyNames(containers).length
     const lalalaal2 = Object.getOwnPropertyNames(containers)
-    const lalala3 = Object.keys(lalalaal2).join(", ")
+    for (let i = 0; i < lalalaal2.length; i++) {
+      logger.info(`1111111111 "${Object.keys(lalalaal2[i])}"`)
+    }
     logger.info(`lalalaal "${lalalaal}"`)
     logger.info(`lalalaal2 "${lalalaal2}"`)
-    logger.info(`lalala3 "${lalala3}"`)
 
 
 
