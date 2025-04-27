@@ -257,35 +257,33 @@ async function connectNewContainerToAppsNetwork(docker: Docker, containerId: str
 
 
 
-
+interface DragonifyNetworkSummary extends Docker.NetworkInspectInfo {
+  Labels: Record<string, string>
+}
 
 
 async function removeEmptyCreatedNetwork(docker: Docker) {
-
   const existingNetworks = await docker.listNetworks()
+
+
+
   const dragonifyNetworks = existingNetworks.filter((thisnetwork: any) => thisnetwork.Labels?.["tj.horner.dragonify.networks"])
+
+
+
 
   for (const networkSummary of dragonifyNetworks) {
     const network = await docker.getNetwork(networkSummary.Id).inspect();
 
-    function isEmpty(obj: any | undefined): boolean {
-      for (const key in obj) {
-        logger.info(`222222222222222222222222 KEY ${key}`)
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          logger.info(`1111111111111111111111111 KEY ${key}`)
-          logger.info(`1111111111111111111111111 NAME ${network.Name}`)
-          return false;
-        }
-      }
-      logger.info(`333333333333333333333333 OBJ ${obj}`)
-      return true;
-    }
+    const containers = network.Containers ?? {}
 
-    if (isEmpty(network.Containers)) {
-      logger.info(`44444444444444444444444444 NAME ${network.Name}`)
+    const isEmpty = Object.keys(containers).length === 0
+
+    if (isEmpty) {
+      console.info(`Network "${network.Name}" is empty and can be deleted.`)
     }
     else {
-      logger.info(`55555555555555555555555555 NAME ${network.Name}`)
+      console.info(`Network "${network.Name}" contains containers : ${Object.keys(containers).join(", ")}`)
     }
   }
 }
