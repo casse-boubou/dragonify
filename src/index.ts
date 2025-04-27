@@ -273,9 +273,7 @@ async function removeEmptyCreatedNetwork(docker: Docker) {
     
     if (isEmpty) {
       logger.info(`Network "${network.Name}" is empty and will be deleted.`)
-      await docker.rmNetwork({
-        Id: network.Id,
-      })
+      await docker.getNetwork(networkSummary.Id).remove()
     }
     else {
       logger.info(`Network "${network.Name}" contains containers : ${Object.keys(containers).join(", ")}`)
