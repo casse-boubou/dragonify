@@ -82,7 +82,7 @@ const DOCKER: Docker = new Docker()
 // then we can assume that all the containers contained in the network are shutdown, and we can therefore disconnect the containers with the label THIS_NETWORK
 // and then, if the network is empty, delete it.
 
-// Finally, to merge all this, we can consider merging these tuples to obtain an nesting of tuples [a,b] and [c,d] with b=[c,d] and obtain:
+// Finally, to merge all this, we can consider merging these tuples to obtain an nesting of tuples [a,b] and [b[0],b[1]] and obtain:
 // {
 //   "NETWORK_1": [
 //     ["CONTAINER_1",["CONTAINER_2"]]
@@ -135,10 +135,10 @@ function isIxAppContainer(container: ContainerInfo) {
 
 async function removeContainerAndNetworkFromTuplesArray(networksDragonifyed: Record<string, [string, string[]][]>, stopped_container_name: string) {
   // Remove the stopped container from all networks in array
-  for (let [e,f] of Object.entries(networksDragonifyed)) {
-    networksDragonifyed[e] = f.filter(([g, h]) => {
+  for (let [a,b] of Object.entries(networksDragonifyed)) {
+    networksDragonifyed[a] = b.filter(([g, h]) => {
       if (g === stopped_container_name) {
-        logger.debug(`Containers dragonified "${g}" is now stopped. Removed from "${e}" network list`)
+        logger.debug(`Containers dragonified "${g}" is now stopped. Removed from "${a}" network list`)
         return false
       }
       return true
@@ -146,10 +146,10 @@ async function removeContainerAndNetworkFromTuplesArray(networksDragonifyed: Rec
   }
 
   // Remove any networks that are now empty
-  for (let [i,j] of Object.entries(networksDragonifyed)) {
-    if (j.length === 0) {
-      delete networksDragonifyed[i]
-      logger.debug(`Network "${i}" is now empty and removed from list`)
+  for (let [a,b] of Object.entries(networksDragonifyed)) {
+    if (b.length === 0) {
+      delete networksDragonifyed[a]
+      logger.debug(`Network "${a}" is now empty and removed from list`)
     }
   }
 }
@@ -187,9 +187,9 @@ async function isAllContainerContainLabelTag(network: NetworkInspectInfo) {
 
 async function removeContainerFromNetworks(networksDragonifyed: Record<string, [string, string[]][]>, stopped_container_name: string) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    for (let [c,d] of b) {
-      if (d.includes(stopped_container_name)) {
-        let thisContainer = await filterContainers("name", c)
+    for (let containername in b[0]) {
+      if (b[1].includes(stopped_container_name)) {
+        let thisContainer = await filterContainers("name", containername)
         let network = await filterNetworkByName(a)
         // Exit if network not found
         if (network.find(n => n.Name !== a)) {
@@ -202,7 +202,7 @@ async function removeContainerFromNetworks(networksDragonifyed: Record<string, [
           await disconnectContainers(network[0],thisContainer[0])
         }
         else {
-          logger.debug(`"${c}" has not been disconnected from the network "${network[0].Name} "because other unmanaged containers are still present in it`)
+          logger.debug(`"${b[0]}" has not been disconnected from the network "${network[0].Name} "because other unmanaged containers are still present in it`)
         }
       }
     }
@@ -212,7 +212,7 @@ async function removeContainerFromNetworks(networksDragonifyed: Record<string, [
 async function containerStop(networksDragonifyed: Record<string, [string, string[]][]>, stopped_container_name: string) {
   await removeContainerFromNetworks(networksDragonifyed, stopped_container_name)
   await removeContainerAndNetworkFromTuplesArray(networksDragonifyed, stopped_container_name)
-  await removeEmptyNetwork()
+    await removeEmptyNetwork()
 }
 
 
@@ -220,9 +220,9 @@ async function containerStop(networksDragonifyed: Record<string, [string, string
 
 async function reConnectOldContainerToAppsNetwork(networksDragonifyed: Record<string, [string, string[]][]>, containerInfo: ContainerInfo) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    for (let [c,d] of b) {
-      if (d.includes(containerInfo.Names.toString())) {
-        let addContainer = await filterContainers("name", c)
+    for (let containername in b[0]) {
+      if (b[1].includes(containerInfo.Names.toString())) {
+        let addContainer = await filterContainers("name", containername)
         // Pass if the container is already connected to the network
         if (isContainerInNetwork(addContainer[0], a)) {
           logger.debug(`Container "${addContainer[0].Names}" ID:${addContainer[0].Id} already connected to network "${a}"`)
@@ -244,10 +244,8 @@ async function aggregateOldContainersTuplesArray(networksDragonifyed: Record<str
   for (let network of Object.keys(containerInfo.NetworkSettings.Networks)) {
     for (let [a,b] of Object.entries(networksDragonifyed)) {
       if (a.includes(network) && !specifiedNetwork.includes(network)) {
-        for (let [c,d] of b) {
-          if (!d.includes(containerInfo.Names.toString())) {
-            d.push(containerInfo.Names.toString())
-          }
+        if (!b[1].includes(containerInfo.Names.toString())) {
+          b[1].push(containerInfo.Names.toString())
         }
       }
     }
@@ -291,7 +289,7 @@ async function containerStart(networksDragonifyed: Record<string, [string, strin
 
 async function removeEmptyNetwork() {
   try {
-    await DOCKER.pruneNetworks()
+  await DOCKER.pruneNetworks()
   } catch (e: any) {
     logger.error(`Exception during prune empty networks:`, e)
   }
@@ -337,15 +335,21 @@ function isContainerInNetwork(container: ContainerInfo, network_name: string): b
   return false
 }
 
-async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<string, [string, string[]][]>, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string) {
+async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<string, [string, string[]][][]>, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string) {
   // Create a network entry in the table (a in tuple [a,b])
   if (!networksDragonifyed[network_name]) {
     networksDragonifyed[network_name] = []
   }
 
   // Create container entry in the network entry (b in tuple [a,b])
-  if (!networksDragonifyed[network_name].some(([name, _]) => name === containerInfo.Names.toString())) {
-    networksDragonifyed[network_name].push([containerInfo.Names.toString(), []])
+  if (!networksDragonifyed[network_name][0]) {
+    networksDragonifyed[network_name][0] = []
+  }
+  if (!networksDragonifyed[network_name][1]) {
+    networksDragonifyed[network_name][1] = []
+  }
+  if (!networksDragonifyed[network_name][0].includes(containerInfo.Names.toString())) {
+    networksDragonifyed[network_name][0].push(containerInfo.Names.toString())
   }
 
   // Exit if network does not exist and after creation of tuple [a,b] because we need [a,b]
@@ -353,7 +357,7 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<s
     return
   }
 
-  // Create tuple [c,d] where c is b of tuple [a,b]
+  // Create tuple [b[0],b[1]] for b in [a,b]
   for (let [a,b] of Object.entries(networksDragonifyed)) {
     // Find for entry correspond to network.name in array
     if (a.includes(networkInfo.Name)) {
@@ -361,7 +365,7 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<s
       let inspectedNetwork = await inspectNetwork(networkInfo.Id)
       let containersInNetwork = inspectedNetwork.Containers ?? {}
 
-      // Push each container already in network (tuple a) in tuple d
+      // Push each container already in network (a) in d
       for (let containerID of Object.keys(containersInNetwork)) {
         let thisContainer = await inspectContainer(containerID)
 
@@ -375,10 +379,8 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<s
           // Push container name in the tuple
           else {
             logger.debug(`"${thisContainer.Name}" IS manager but not for "${networkInfo.Name}". He was probably the one who created it.`)
-            for (let [c,d] of b) {
-              if (c.includes(containerInfo.Names.toString()) && !d.includes(thisContainer.Name)) {
-                d.push(thisContainer.Name)
-              }
+            if (b[0].includes(containerInfo.Names.toString()) && !b[1].includes(thisContainer.Name)) {
+              b[1].push(thisContainer.Name)
             }
           }
         }
@@ -386,10 +388,8 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<s
         // Push container name in the tuple
         else {
           logger.debug(`"${thisContainer.Name}" IS NOT managed for "${networkInfo.Name}". He was probably the one who created it.`)
-          for (let [c,d] of b) {
-            if (c.includes(containerInfo.Names.toString()) && !d.includes(thisContainer.Name)) {
-              d.push(thisContainer.Name)
-            }
+          if (b[0].includes(containerInfo.Names.toString()) && !b[1].includes(thisContainer.Name)) {
+            b[1].push(thisContainer.Name)
           }
         }
       }
@@ -533,6 +533,7 @@ async function main() {
   } catch (e: any) {
     logger.error(`Exception during initialiseDragonify:`, e)
   }
+  // logger.info(`000000000 ${JSON.stringify(networksDragonifyed)}`)
 
 
   // Listen to Docker events
@@ -556,6 +557,7 @@ async function main() {
         logger.error(`Exception during containerStarting:`, e)
       }
     })
+    // logger.info(JSON.stringify(networksDragonifyed))
   })
 
 
@@ -587,8 +589,8 @@ async function main() {
 
       for (let [a,b] of Object.entries(networksDragonifyed)) {
         if (a.includes(networkName)) {
-          for (let [c,d] of b) {
-            let thisContainer = await filterContainers("name", c)
+          for (let containername in b[0]) {
+            let thisContainer = await filterContainers("name", containername)
             await connectContainers(thisContainer[0], networkName)
           }
         }

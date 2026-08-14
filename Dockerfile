@@ -1,7 +1,9 @@
 FROM node:24-trixie-slim AS build
-COPY . /app
+COPY package.json /app/
+COPY package-lock.json /app/
 WORKDIR /app
 RUN npm ci
+COPY /src /app/src
 RUN npm run build
 
 FROM node:24-trixie-slim AS prod-deps
