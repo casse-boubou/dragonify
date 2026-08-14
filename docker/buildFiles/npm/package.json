@@ -14,16 +14,16 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/dockerode": "^3.3.32",
+    "@types/dockerode": "^4.0.1",
     "@types/stream-json": "^1.7.8",
-    "esbuild": "^0.27.2",
-    "typescript": "^5.7.2"
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
-    "dockerode": "^4.0.2",
-    "p-queue": "^9.0.0",
-    "stream-chain": "^3.3.2",
-    "stream-json": "^1.9.1",
-    "winston": "^3.17.0"
+    "dockerode": "^5.0.1",
+    "p-queue": "^9.3.3",
+    "stream-chain": "^4.2.5",
+    "stream-json": "^3.5.0",
+    "winston": "^3.19.0"
   }
 }

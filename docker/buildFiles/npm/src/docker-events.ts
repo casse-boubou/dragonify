@@ -2,7 +2,7 @@ import Docker from "dockerode"
 import EventEmitter from "events"
 
 import { chain } from "stream-chain"
-import { parser } from "stream-json/jsonl/Parser"
+import { parser } from "stream-json/jsonl/parser.js"
 import { logger } from "./logger"
 
 export function getEventStream(docker: Docker): EventEmitter {
