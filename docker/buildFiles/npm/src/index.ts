@@ -133,21 +133,19 @@ function isIxAppContainer(container: ContainerInfo) {
 
 
 
-async function removeContainerAndNetworkFromTuplesArray(networksDragonifyed: Record<string, [string, string[]][]>, stopped_container_name: string) {
+async function removeContainerAndNetworkFromTuplesArray(networksDragonifyed: Record<string, [string[], string[]]>, stopped_container_name: string) {
   // Remove the stopped container from all networks in array
-  for (let [a,b] of Object.entries(networksDragonifyed)) {
-    networksDragonifyed[a] = b.filter(([g, h]) => {
-      if (g === stopped_container_name) {
-        logger.debug(`Containers dragonified "${g}" is now stopped. Removed from "${a}" network list`)
-        return false
-      }
-      return true
-    })
+  for (let [a, b] of Object.entries(networksDragonifyed)) {
+    b[0] = b[0].filter(name => name !== stopped_container_name)
+    b[1] = b[1].filter(name => name !== stopped_container_name)
+    if (b[0].includes(stopped_container_name)) {
+      logger.debug(`Containers dragonified "${stopped_container_name}" is now stopped. Removed from "${a}" network list`)
+    }
   }
 
   // Remove any networks that are now empty
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    if (b.length === 0) {
+    if (b[0].length === 0 && b[1].length === 0) {
       delete networksDragonifyed[a]
       logger.debug(`Network "${a}" is now empty and removed from list`)
     }
@@ -185,42 +183,43 @@ async function isAllContainerContainLabelTag(network: NetworkInspectInfo) {
   return true
 }
 
-async function removeContainerFromNetworks(networksDragonifyed: Record<string, [string, string[]][]>, stopped_container_name: string) {
+async function removeContainerFromNetworks(networksDragonifyed: Record<string, [string[], string[]]>, stopped_container_name: string) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    for (let containername in b[0]) {
+    for (let containername of b[0]) {
       if (b[1].includes(stopped_container_name)) {
         let thisContainer = await filterContainers("name", containername)
         let network = await filterNetworkByName(a)
         // Exit if network not found
-        if (network.find(n => n.Name !== a)) {
+        const matchedNetwork = network.find(n => n.Name === a)
+        if (!matchedNetwork) {
           return
         }
-        let thisNetwork = await inspectNetwork(network[0].Id)
+        let thisNetwork = await inspectNetwork(matchedNetwork.Id)
 
         // Check if all containers in the network have the label before disconnecting
         if (await isAllContainerContainLabelTag(thisNetwork)) {
-          await disconnectContainers(network[0],thisContainer[0])
+          await disconnectContainers(matchedNetwork,thisContainer[0])
         }
         else {
-          logger.debug(`"${b[0]}" has not been disconnected from the network "${network[0].Name} "because other unmanaged containers are still present in it`)
+          logger.debug(`"${b[0]}" has not been disconnected from the network "${matchedNetwork.Name} "because other unmanaged containers are still present in it`)
         }
       }
     }
   }
 }
 
-async function containerStop(networksDragonifyed: Record<string, [string, string[]][]>, stopped_container_name: string) {
+async function containerStop(networksDragonifyed: Record<string, [string[], string[]]>, stopped_container_name: string) {
   await removeContainerFromNetworks(networksDragonifyed, stopped_container_name)
   await removeContainerAndNetworkFromTuplesArray(networksDragonifyed, stopped_container_name)
-    await removeEmptyNetwork()
+  await removeEmptyNetwork()
 }
 
 
 
 
-async function reConnectOldContainerToAppsNetwork(networksDragonifyed: Record<string, [string, string[]][]>, containerInfo: ContainerInfo) {
+async function reConnectOldContainerToAppsNetwork(networksDragonifyed: Record<string, [string[], string[]]>, containerInfo: ContainerInfo) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    for (let containername in b[0]) {
+    for (let containername of b[0]) {
       if (b[1].includes(containerInfo.Names.toString())) {
         let addContainer = await filterContainers("name", containername)
         // Pass if the container is already connected to the network
@@ -236,7 +235,7 @@ async function reConnectOldContainerToAppsNetwork(networksDragonifyed: Record<st
   }
 }
 
-async function aggregateOldContainersTuplesArray(networksDragonifyed: Record<string, [string, string[]][]>, containerInfo: ContainerInfo) {
+async function aggregateOldContainersTuplesArray(networksDragonifyed: Record<string, [string[], string[]]>, containerInfo: ContainerInfo) {
   let specifiedNetwork: string[] = []
   if (isDragonifyLabeled(containerInfo.Labels)) {
     specifiedNetwork = containerInfo.Labels[DRAGONIFY_NETWORK_LABEL].split(',')
@@ -252,7 +251,7 @@ async function aggregateOldContainersTuplesArray(networksDragonifyed: Record<str
   }
 }
 
-async function connectNewContainerToAppsNetwork(networksDragonifyed: Record<string, [string, string[]][]>, dockerEvent: Docker.EventMessage) {
+async function connectNewContainerToAppsNetwork(networksDragonifyed: Record<string, [string[], string[]]>, dockerEvent: Docker.EventMessage) {
   // Retrieve information from the container
   const container = await filterContainers("id", dockerEvent["ID"])
 
@@ -280,7 +279,7 @@ async function connectNewContainerToAppsNetwork(networksDragonifyed: Record<stri
   logger.info(`"${container[0].Names}" is connected to all its networks`)
 }
 
-async function containerStart(networksDragonifyed: Record<string, [string, string[]][]>, dockerEvent: Docker.EventMessage) {
+async function containerStart(networksDragonifyed: Record<string, [string[], string[]]>, dockerEvent: Docker.EventMessage) {
   await connectNewContainerToAppsNetwork(networksDragonifyed, dockerEvent)
 }
 
@@ -335,19 +334,13 @@ function isContainerInNetwork(container: ContainerInfo, network_name: string): b
   return false
 }
 
-async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<string, [string, string[]][][]>, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string) {
+async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<string, [string[], string[]]>, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string) {
   // Create a network entry in the table (a in tuple [a,b])
   if (!networksDragonifyed[network_name]) {
-    networksDragonifyed[network_name] = []
+    networksDragonifyed[network_name] = [[],[]]
   }
 
   // Create container entry in the network entry (b in tuple [a,b])
-  if (!networksDragonifyed[network_name][0]) {
-    networksDragonifyed[network_name][0] = []
-  }
-  if (!networksDragonifyed[network_name][1]) {
-    networksDragonifyed[network_name][1] = []
-  }
   if (!networksDragonifyed[network_name][0].includes(containerInfo.Names.toString())) {
     networksDragonifyed[network_name][0].push(containerInfo.Names.toString())
   }
@@ -399,7 +392,7 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Record<s
   logger.debug(`Container "${containerInfo.Names}" added to "${networkInfo.Name}" network list`)
 }
 
-async function connectContainerToListedNetworks(networksDragonifyed: Record<string, [string, string[]][]>, container: ContainerInfo, networkList: string[]) {
+async function connectContainerToListedNetworks(networksDragonifyed: Record<string, [string[], string[]]>, container: ContainerInfo, networkList: string[]) {
   for (let i = 0; i < networkList.length; i++) {
     let network = await filterNetworkByName(networkList[i])
     // Implement the array
@@ -446,7 +439,7 @@ function createNetworkListToConnect(container: ContainerInfo) {
   return networkList
 }
 
-async function connectAllContainersToAppsNetwork(networksDragonifyed: Record<string, [string, string[]][]>) {
+async function connectAllContainersToAppsNetwork(networksDragonifyed: Record<string, [string[], string[]]>) {
   logger.info("Connecting existing app containers to networks")
 
   // List all containers with the ix- label
@@ -520,7 +513,7 @@ async function setUpDragonifyNetwork() {
 async function main() {
   const queue = new PQueue({concurrency: 1})
   // Create an empty array to hold the dragonifyed networks and their containers
-  var networksDragonifyed: Record<string, [string, string[]][]> = {}
+  var networksDragonifyed: Record<string, [string[], string[]]> = {}
 
   // Initialise Dragonify
   try {
@@ -534,7 +527,6 @@ async function main() {
     logger.error(`Exception during initialiseDragonify:`, e)
   }
   // logger.info(`000000000 ${JSON.stringify(networksDragonifyed)}`)
-
 
   // Listen to Docker events
   const events = getEventStream(DOCKER)
@@ -557,7 +549,6 @@ async function main() {
         logger.error(`Exception during containerStarting:`, e)
       }
     })
-    // logger.info(JSON.stringify(networksDragonifyed))
   })
 
 
@@ -589,7 +580,7 @@ async function main() {
 
       for (let [a,b] of Object.entries(networksDragonifyed)) {
         if (a.includes(networkName)) {
-          for (let containername in b[0]) {
+          for (let containername of b[0]) {
             let thisContainer = await filterContainers("name", containername)
             await connectContainers(thisContainer[0], networkName)
           }
