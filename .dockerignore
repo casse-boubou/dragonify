@@ -1,3 +1,4 @@
 node_modules
-fixtures
-dist
+**/dist
+.DS_Store
+Thumbs.db

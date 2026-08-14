@@ -528,7 +528,7 @@ async function main() {
     await setUpDragonifyNetwork()
     await connectAllContainersToAppsNetwork(networksDragonifyed)
     // Flush any leftover empty networks
-    await removeEmptyNetwork()
+      await removeEmptyNetwork()
     logger.info(`Dragonify initialised.`)
   } catch (e: any) {
     logger.error(`Exception during initialiseDragonify:`, e)
