@@ -1,6 +1,6 @@
 services:
   dragonify:
-    image: ghcr.io/casse-boubou/dragonify:main
+    image: ghcr.io/casse-boubou/dragonify:v0.0.1
     environment:
       CONNECT_ALL: false
       LOG_LEVEL: debug
