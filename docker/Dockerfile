@@ -10,7 +10,7 @@ COPY buildFiles/npm/package*.json /app/
 WORKDIR /app
 RUN npm ci --omit=dev
 
-FROM gcr.io/distroless/nodejs24-debian13:latest AS worker
+FROM gcr.io/distroless/nodejs24-debian13:latest@sha256:2bf219fb146cb474aae1ef2b446f8e61fb6aa47b55d067fd05cae39ec348acc2 AS worker
 COPY --from=build /app/dist/index.js /app/index.js
 COPY --from=prod-deps /app/node_modules /app/node_modules
 WORKDIR /app
