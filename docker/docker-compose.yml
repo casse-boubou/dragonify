@@ -1,11 +1,6 @@
 services:
   dragonify:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    # Or use the prebuilt image instead of local build
-    # image: ghcr.io/engturtle/dragonify:main
-    image:
+    image: ghcr.io/casse-boubou/dragonify:main
     environment:
       CONNECT_ALL: false
       LOG_LEVEL: debug
