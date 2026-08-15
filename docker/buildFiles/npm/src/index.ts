@@ -130,9 +130,6 @@ function getDnsName(container: ContainerInfo) {
 function isIxProjectName(name: string) {
   return name?.startsWith("ix-") ?? false
 }
-function isIxAppContainer(container: ContainerInfo) {
-  return isIxProjectName(container.Labels[IX_DOCKER_LABEL])
-}
 
 
 
@@ -172,11 +169,11 @@ async function disconnectContainers(networkInfo: NetworkInfo, containerInfo: Con
   }
 }
 
-async function isAllContainerContainLabelTag(network: NetworkInspectInfo, containerslist: ContainerInfo) {
+async function isAllContainerContainLabelTag(network: NetworkInspectInfo, listOfAllContainers: ContainerInfo) {
   // Check all containers connected to the network
   for (let containerInThisNetwork of Object.keys(network.Containers) ) {
     // Get container info
-    let thisContainerInList = containerslist.find(n => n.Id === containerInThisNetwork)
+    let thisContainerInList = listOfAllContainers.find(n => n.Id === containerInThisNetwork)
     // Check if container has the dragonify label with the network name
     if (!thisContainerInList) {
       logger.debug(`Container "${containerInThisNetwork}" found in network "${network.Name}" but not in container list, likely removed. Skipping.`)
@@ -233,19 +230,22 @@ async function containerStop(networksDragonifyed: NetworksState, stopped_contain
 
 
 
-async function reConnectOldContainerToAppsNetwork(networksDragonifyed: NetworksState, containerInfo: ContainerInfo) {
+async function reConnectOldContainerToAppsNetwork(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, listOfAllContainers: ContainerInfo) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
     if (b.natif.includes(containerInfo.Names.toString())) {
       for (let containername of b.managed) {
-        let addContainer = await filterContainers("name", containername)
+        let addContainer = listOfAllContainers.find(n => n.Names[0] === containername)
+        if (!addContainer) {
+          continue
+        }
         // Pass if the container is already connected to the network
-        if (isContainerInNetwork(addContainer[0], a)) {
-          logger.debug(`Container "${addContainer[0].Names}" ID:${addContainer[0].Id} already connected to network "${a}"`)
+        if (isContainerInNetwork(addContainer, a)) {
+          logger.debug(`Container "${addContainer.Names.toString()}" ID:${addContainer.Id} already connected to network "${a}"`)
           continue
         }
 
-        logger.info(`Reconnect "${addContainer[0].Names}" to network "${a}"`)
-        await connectContainers(addContainer[0], a)
+        logger.info(`Reconnect "${addContainer.Names.toString()}" to network "${a}"`)
+        await connectContainers(addContainer, a)
       }
     }
   }
@@ -287,10 +287,11 @@ async function connectNewContainerToAppsNetwork(networksDragonifyed: NetworksSta
   const networkList = createNetworkListToConnect(container[0])
 
   // Connect the container to each network in the list
-  await connectContainerToListedNetworks(networksDragonifyed, container[0], networkList)
+  let listOfAllContainers = await getAllContainer()
+  await connectContainerToListedNetworks(networksDragonifyed, container[0], networkList, listOfAllContainers)
 
   // Connect all containers that were waiting for this network
-  await reConnectOldContainerToAppsNetwork(networksDragonifyed, container[0])
+  await reConnectOldContainerToAppsNetwork(networksDragonifyed, container[0], listOfAllContainers)
 
   logger.info(`"${container[0].Names}" is connected to all its networks`)
 }
@@ -359,7 +360,7 @@ function isContainerInNetwork(container: ContainerInfo, network_name: string): b
   return false
 }
 
-async function addContainerAndNetworkToTuplesArray(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string) {
+async function addContainerAndNetworkToTuplesArray(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string, listOfAllContainers: ContainerInfo) {
   // Create a network entry in the table (a in tuple [a,b])
   if (!networksDragonifyed[network_name]) {
     networksDragonifyed[network_name] = {managed:[], natif:[]}
@@ -382,9 +383,11 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Networks
   let containersInNetwork = inspectedNetwork.Containers ?? {}
 
   // Push each container already in network (a) in b.natif
-  let listOfAllContainers = await getAllContainer()
   for (let containerID of Object.keys(containersInNetwork)) {
     let thisContainer = listOfAllContainers.find(n => n.Id === containerID)
+    if (!thisContainer) {
+      continue
+    }
 
     // Verify if container contain Dragonify label
     if (isDragonifyLabeled(thisContainer.Labels)) {
@@ -414,11 +417,11 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Networks
   logger.debug(`Container "${containerInfo.Names}" added to "${networkInfo.Name}" network list`)
 }
 
-async function connectContainerToListedNetworks(networksDragonifyed: NetworksState, container: ContainerInfo, networkList: string[]) {
+async function connectContainerToListedNetworks(networksDragonifyed: NetworksState, container: ContainerInfo, networkList: string[], listOfAllContainers: ContainerInfo) {
   for (let i = 0; i < networkList.length; i++) {
     let network = await filterNetworkByName(networkList[i])
     // Implement the array
-    await addContainerAndNetworkToTuplesArray(networksDragonifyed, container, network[0], networkList[i])
+    await addContainerAndNetworkToTuplesArray(networksDragonifyed, container, network[0], networkList[i], listOfAllContainers)
     // Connect to the network if it exists
     if (network.find(n => n.Name === networkList[i])) {
       // Pass if the container is already connected to the network
@@ -464,19 +467,18 @@ function createNetworkListToConnect(container: ContainerInfo) {
 async function connectAllContainersToAppsNetwork(networksDragonifyed: NetworksState) {
   logger.info("Connecting existing app containers to networks")
 
-  // List all containers with the ix- label
-  const listAllContainers = await filterContainers("label", IX_DOCKER_LABEL)
-
-  // Filter only ix-app containers
-  const appContainers = listAllContainers.filter(isIxAppContainer)
+  // List all containers
+  const listOfAllContainers = await getAllContainer()
+  const appContainers = listOfAllContainers.filter(c => isIxProjectName(c.Labels[IX_DOCKER_LABEL]))
 
   // Connect each app container to its networks
+  // let listOfAllContainers = await getAllContainer()
   for (const container of appContainers) {
     // Create a list of networks to connect the container to
     const networkList = createNetworkListToConnect(container)
 
     // Connect the container to each network in the list
-    await connectContainerToListedNetworks(networksDragonifyed, container, networkList)
+    await connectContainerToListedNetworks(networksDragonifyed, container, networkList, listOfAllContainers)
 
     logger.info(`"${container.Names}" is connected to all its networks`)
   }
