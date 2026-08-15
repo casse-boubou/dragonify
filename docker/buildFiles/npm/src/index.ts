@@ -106,6 +106,9 @@ const DOCKER: Docker = new Docker()
 
 
 
+async function getAllContainer() {
+  return await DOCKER.listContainers({ all: true })
+}
 async function filterNetworkByName(network_name: string) {
   return await DOCKER.listNetworks({filters: {name: [network_name]}})
 }
@@ -172,13 +175,17 @@ async function disconnectContainers(networkInfo: NetworkInfo, containerInfo: Con
   }
 }
 
-async function isAllContainerContainLabelTag(network: NetworkInspectInfo) {
+async function isAllContainerContainLabelTag(network: NetworkInspectInfo, containerslist: ContainerInfo) {
   // Check all containers connected to the network
   for (let containerInThisNetwork of Object.keys(network.Containers) ) {
     // Get container info
-    let listThisContainer = await filterContainers("id", containerInThisNetwork)
+    let thisContainerInList = containerslist.find(n => n.Id === containerInThisNetwork)
     // Check if container has the dragonify label with the network name
-    let hasNetworkTag = listThisContainer[0].Labels[DRAGONIFY_NETWORK_LABEL]?.includes(network.Name) ?? false
+    if (!thisContainerInList) {
+      logger.debug(`Container "${containerInThisNetwork}" found in network "${network.Name}" but not in container list, likely removed. Skipping.`)
+      continue
+    }
+    let hasNetworkTag = thisContainerInList.Labels[DRAGONIFY_NETWORK_LABEL]?.includes(network.Name) ?? false
     // If one container does not have the label, return false
     if (!hasNetworkTag) {
       return false
@@ -189,24 +196,33 @@ async function isAllContainerContainLabelTag(network: NetworkInspectInfo) {
 
 async function removeContainerFromNetworks(networksDragonifyed: NetworksState, stopped_container_name: string) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    for (let containername of b.managed) {
-      if (b.natif.includes(stopped_container_name)) {
-        let thisContainer = await filterContainers("name", containername)
-        let network = await filterNetworkByName(a)
-        // Exit if network not found
-        const matchedNetwork = network.find(n => n.Name === a)
-        if (!matchedNetwork) {
-          return
-        }
-        let thisNetwork = await inspectNetwork(matchedNetwork.Id)
+    if (b.natif.includes(stopped_container_name)) {
+      let network = await filterNetworkByName(a)
+      // Exit if network not found
+      const matchedNetwork = network.find(n => n.Name === a)
+      if (!matchedNetwork) {
+        return
+      }
+      let thisNetwork = await inspectNetwork(matchedNetwork.Id)
+      let listOfAllContainers = await getAllContainer()
 
-        // Check if all containers in the network have the label before disconnecting
-        if (await isAllContainerContainLabelTag(thisNetwork)) {
-          await disconnectContainers(matchedNetwork,thisContainer[0])
+      // Check if all containers in the network have the label before disconnecting
+      if (await isAllContainerContainLabelTag(thisNetwork, listOfAllContainers)) {
+        for (let containername of b.managed) {
+          let thisContainer = listOfAllContainers.find(n => n.Names[0] === containername)
+          if (!thisContainer) {
+            continue
+          }
+          await disconnectContainers(matchedNetwork,thisContainer)
         }
-        else {
-          logger.debug(`"${b.managed}" has not been disconnected from the network "${matchedNetwork.Name} "because other unmanaged containers are still present in it`)
+        // Remove network if it is empty
+        thisNetwork = await inspectNetwork(matchedNetwork.Id)
+        if (Object.keys(thisNetwork.Containers).length === 0) {
+          await removeEmptyNetwork(matchedNetwork.Id)
         }
+      }
+      else {
+        logger.debug(`"${b.managed}" has not been disconnected from the network "${matchedNetwork.Name} "because other unmanaged containers are still present in it`)
       }
     }
   }
@@ -215,7 +231,6 @@ async function removeContainerFromNetworks(networksDragonifyed: NetworksState, s
 async function containerStop(networksDragonifyed: NetworksState, stopped_container_name: string) {
   await removeContainerFromNetworks(networksDragonifyed, stopped_container_name)
   await removeContainerAndNetworkFromTuplesArray(networksDragonifyed, stopped_container_name)
-  await removeEmptyNetwork()
 }
 
 
@@ -246,7 +261,7 @@ async function aggregateOldContainersTuplesArray(networksDragonifyed: NetworksSt
   }
   for (let network of Object.keys(containerInfo.NetworkSettings.Networks)) {
     for (let [a,b] of Object.entries(networksDragonifyed)) {
-      if (a.includes(network) && !specifiedNetwork.includes(network)) {
+      if (a === network && !specifiedNetwork.includes(network)) {
         if (!b.natif.includes(containerInfo.Names.toString())) {
           b.natif.push(containerInfo.Names.toString())
         }
@@ -290,11 +305,20 @@ async function containerStart(networksDragonifyed: NetworksState, dockerEvent: D
 
 
 
-async function removeEmptyNetwork() {
-  try {
-  await DOCKER.pruneNetworks()
-  } catch (e: any) {
-    logger.error(`Exception during prune empty networks:`, e)
+async function removeEmptyNetwork(networkId) {
+  if (networkId == "All") {
+    try {
+      await DOCKER.pruneNetworks()
+    } catch (e: any) {
+      logger.error(`Exception during prune empty networks:`, e)
+    }
+  }
+  else {
+    try {
+      await DOCKER.getNetwork(networkId).remove()
+    } catch (e: any) {
+      logger.error(`Exception during deletion of empty networks:`, e)
+    }
   }
 }
 
@@ -357,7 +381,7 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Networks
   // Create tuple {b.managed,b.natif} for b in [a,b]
   for (let [a,b] of Object.entries(networksDragonifyed)) {
     // Find for entry correspond to network.name in array
-    if (a.includes(networkInfo.Name)) {
+    if (a === networkInfo.Name) {
       // Find for containers already connected to this network
       let inspectedNetwork = await inspectNetwork(networkInfo.Id)
       let containersInNetwork = inspectedNetwork.Containers ?? {}
@@ -525,7 +549,7 @@ async function main() {
     await setUpDragonifyNetwork()
     await connectAllContainersToAppsNetwork(networksDragonifyed)
     // Flush any leftover empty networks
-      await removeEmptyNetwork()
+    await removeEmptyNetwork("All")
     logger.info(`Dragonify initialised.`)
   } catch (e: any) {
     logger.error(`Exception during initialiseDragonify:`, e)
@@ -583,7 +607,7 @@ async function main() {
       const networkName = dockerEvent.Attributes["name"]
 
       for (let [a,b] of Object.entries(networksDragonifyed)) {
-        if (a.includes(networkName)) {
+        if (a === networkName) {
           for (let containername of b.managed) {
             let thisContainer = await filterContainers("name", containername)
             if (!thisContainer[0]) continue
