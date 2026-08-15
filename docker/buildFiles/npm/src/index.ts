@@ -122,9 +122,6 @@ async function filterContainers(filter_type: string, filter_value: string) {
 async function inspectNetwork(network_id: string) {
   return await DOCKER.getNetwork(network_id).inspect()
 }
-async function inspectContainer(container_id: string) {
-  return await DOCKER.getContainer(container_id).inspect()
-}
 function getDnsName(container: ContainerInfo) {
   const service = container.Labels["com.docker.compose.service"]
   const project = container.Labels[IX_DOCKER_LABEL]
@@ -238,8 +235,8 @@ async function containerStop(networksDragonifyed: NetworksState, stopped_contain
 
 async function reConnectOldContainerToAppsNetwork(networksDragonifyed: NetworksState, containerInfo: ContainerInfo) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
-    for (let containername of b.managed) {
-      if (b.natif.includes(containerInfo.Names.toString())) {
+    if (b.natif.includes(containerInfo.Names.toString())) {
+      for (let containername of b.managed) {
         let addContainer = await filterContainers("name", containername)
         // Pass if the container is already connected to the network
         if (isContainerInNetwork(addContainer[0], a)) {
@@ -378,41 +375,38 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Networks
     return
   }
 
-  // Create tuple {b.managed,b.natif} for b in [a,b]
-  for (let [a,b] of Object.entries(networksDragonifyed)) {
-    // Find for entry correspond to network.name in array
-    if (a === networkInfo.Name) {
-      // Find for containers already connected to this network
-      let inspectedNetwork = await inspectNetwork(networkInfo.Id)
-      let containersInNetwork = inspectedNetwork.Containers ?? {}
+  // Assigne b for b in [a,b] because a = network_name create earlier
+  const b = networksDragonifyed[network_name]
+  // Find for containers already connected to this network
+  let inspectedNetwork = await inspectNetwork(networkInfo.Id)
+  let containersInNetwork = inspectedNetwork.Containers ?? {}
 
-      // Push each container already in network (a) in d
-      for (let containerID of Object.keys(containersInNetwork)) {
-        let thisContainer = await inspectContainer(containerID)
+  // Push each container already in network (a) in b.natif
+  let listOfAllContainers = await getAllContainer()
+  for (let containerID of Object.keys(containersInNetwork)) {
+    let thisContainer = listOfAllContainers.find(n => n.Id === containerID)
 
-        // Verify if container contain Dragonify label
-        if (isDragonifyLabeled(thisContainer.Config.Labels)) {
-          // Verify if label containe this network
-          if (thisContainer.Config.Labels[DRAGONIFY_NETWORK_LABEL].includes(networkInfo.Name)) {
-            logger.debug(`"${thisContainer.Name}" is managed for "${networkInfo.Name}"`)
-          }
+    // Verify if container contain Dragonify label
+    if (isDragonifyLabeled(thisContainer.Labels)) {
+      // Verify if label containe this network
+      if (thisContainer.Labels[DRAGONIFY_NETWORK_LABEL].includes(networkInfo.Name)) {
+        logger.debug(`"${thisContainer.Names.toString()}" is managed for "${networkInfo.Name}"`)
+      }
 
-          // Push container name in the tuple
-          else {
-            logger.debug(`"${thisContainer.Name}" IS manager but not for "${networkInfo.Name}". He was probably the one who created it.`)
-            if (b.managed.includes(containerInfo.Names.toString()) && !b.natif.includes(thisContainer.Name)) {
-              b.natif.push(thisContainer.Name)
-            }
-          }
+      // Push container name in the tuple
+      else {
+        logger.debug(`"${thisContainer.Names.toString()}" IS manager but not for "${networkInfo.Name}". He was probably the one who created it.`)
+        if (b.managed.includes(containerInfo.Names.toString()) && !b.natif.includes(thisContainer.Names.toString())) {
+          b.natif.push(thisContainer.Names.toString())
         }
+      }
+    }
 
-        // Push container name in the tuple
-        else {
-          logger.debug(`"${thisContainer.Name}" IS NOT managed for "${networkInfo.Name}". He was probably the one who created it.`)
-          if (b.managed.includes(containerInfo.Names.toString()) && !b.natif.includes(thisContainer.Name)) {
-            b.natif.push(thisContainer.Name)
-          }
-        }
+    // Push container name in the tuple
+    else {
+      logger.debug(`"${thisContainer.Names.toString()}" IS NOT managed for "${networkInfo.Name}". He was probably the one who created it.`)
+      if (b.managed.includes(containerInfo.Names.toString()) && !b.natif.includes(thisContainer.Names.toString())) {
+        b.natif.push(thisContainer.Names.toString())
       }
     }
   }
