@@ -153,7 +153,7 @@ async function removeContainerAndNetworkFromTuplesArray(networksDragonifyed: Net
   }
 }
 
-async function disconnectContainers(networkInfo: NetworkInfo, containerInfo: ContainerInfo) {
+async function disconnectContainers(networkInfo: NetworkInspectInfo, containerInfo: ContainerInfo) {
   try {
     await DOCKER.getNetwork(networkInfo.Id).disconnect({
     Container: containerInfo.Id
@@ -169,9 +169,9 @@ async function disconnectContainers(networkInfo: NetworkInfo, containerInfo: Con
   }
 }
 
-async function isAllContainerContainLabelTag(network: NetworkInspectInfo, listOfAllContainers: ContainerInfo) {
+async function isAllContainerContainLabelTag(network: NetworkInspectInfo, listOfAllContainers: ContainerInfo[]) {
   // Check all containers connected to the network
-  for (let containerInThisNetwork of Object.keys(network.Containers) ) {
+  for (let containerInThisNetwork of Object.keys(network.Containers ?? {}) ) {
     // Get container info
     let thisContainerInList = listOfAllContainers.find(n => n.Id === containerInThisNetwork)
     // Check if container has the dragonify label with the network name
@@ -211,7 +211,7 @@ async function removeContainerFromNetworks(networksDragonifyed: NetworksState, s
         }
         // Remove network if it is empty
         thisNetwork = await inspectNetwork(matchedNetwork.Id)
-        if (Object.keys(thisNetwork.Containers).length === 0) {
+        if (Object.keys(thisNetwork.Containers ?? {}).length === 0) {
           await removeEmptyNetwork(matchedNetwork.Id)
         }
       }
@@ -230,7 +230,7 @@ async function containerStop(networksDragonifyed: NetworksState, stopped_contain
 
 
 
-async function reConnectOldContainerToAppsNetwork(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, listOfAllContainers: ContainerInfo) {
+async function reConnectOldContainerToAppsNetwork(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, listOfAllContainers: ContainerInfo[]) {
   for (let [a,b] of Object.entries(networksDragonifyed)) {
     if (b.natif.includes(containerInfo.Names.toString())) {
       for (let containername of b.managed) {
@@ -267,13 +267,13 @@ async function aggregateOldContainersTuplesArray(networksDragonifyed: NetworksSt
   }
 }
 
-async function connectNewContainerToAppsNetwork(networksDragonifyed: NetworksState, dockerEvent: Docker.EventMessage) {
+async function connectNewContainerToAppsNetwork(networksDragonifyed: NetworksState, dockerEventID: string) {
   // Retrieve information from the container
-  const container = await filterContainers("id", dockerEvent["ID"])
+  const container = await filterContainers("id", dockerEventID)
 
   // Exit if container is already stopped
-  if (!container.find(n => n.Id === dockerEvent["ID"])) {
-    logger.warn(`Container ${dockerEvent["ID"]} not found. Maybe docker container runs a single command and is exited`)
+  if (!container.find(n => n.Id === dockerEventID)) {
+    logger.warn(`Container ${dockerEventID} not found. Maybe docker container runs a single command and is exited`)
     return
   }
 
@@ -296,14 +296,14 @@ async function connectNewContainerToAppsNetwork(networksDragonifyed: NetworksSta
   logger.info(`"${container[0].Names}" is connected to all its networks`)
 }
 
-async function containerStart(networksDragonifyed: NetworksState, dockerEvent: Docker.EventMessage) {
-  await connectNewContainerToAppsNetwork(networksDragonifyed, dockerEvent)
+async function containerStart(networksDragonifyed: NetworksState, dockerEventID: string) {
+  await connectNewContainerToAppsNetwork(networksDragonifyed, dockerEventID)
 }
 
 
 
 
-async function removeEmptyNetwork(networkId) {
+async function removeEmptyNetwork(networkId: string) {
   if (networkId == "All") {
     try {
       await DOCKER.pruneNetworks()
@@ -360,7 +360,7 @@ function isContainerInNetwork(container: ContainerInfo, network_name: string): b
   return false
 }
 
-async function addContainerAndNetworkToTuplesArray(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, networkInfo: NetworkInfo, network_name: string, listOfAllContainers: ContainerInfo) {
+async function addContainerAndNetworkToTuplesArray(networksDragonifyed: NetworksState, containerInfo: ContainerInfo, networkInfo: NetworkInspectInfo, network_name: string, listOfAllContainers: ContainerInfo[]) {
   // Create a network entry in the table (a in tuple [a,b])
   if (!networksDragonifyed[network_name]) {
     networksDragonifyed[network_name] = {managed:[], natif:[]}
@@ -417,7 +417,7 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Networks
   logger.debug(`Container "${containerInfo.Names}" added to "${networkInfo.Name}" network list`)
 }
 
-async function connectContainerToListedNetworks(networksDragonifyed: NetworksState, container: ContainerInfo, networkList: string[], listOfAllContainers: ContainerInfo) {
+async function connectContainerToListedNetworks(networksDragonifyed: NetworksState, container: ContainerInfo, networkList: string[], listOfAllContainers: ContainerInfo[]) {
   for (let i = 0; i < networkList.length; i++) {
     let network = await filterNetworkByName(networkList[i])
     // Implement the array
@@ -560,15 +560,14 @@ async function main() {
   events.on("container.start", (dockerEvent) => {
     // Use the queue to ensure sequential processing
     queue.add(async () => {
-      const containerAttributes = dockerEvent.Attributes
-      if (!isIxProjectName(containerAttributes[IX_DOCKER_LABEL])) {
+      if (!isIxProjectName(dockerEvent.Attributes[IX_DOCKER_LABEL])) {
         return
       }
 
       // Try to connect the container from all dragonifyed networks
-      logger.info(`App container starting: "${containerAttributes.name}"...`)
+      logger.info(`App container starting: "${dockerEvent.Attributes["name"]}"...`)
       try {
-        await containerStart(networksDragonifyed, dockerEvent)
+        await containerStart(networksDragonifyed, dockerEvent["ID"])
       } catch (e: any) {
         logger.error(`Exception during containerStarting:`, e)
       }
@@ -580,13 +579,12 @@ async function main() {
   events.on("container.stop", (dockerEvent) => {
     // Use the queue to ensure sequential processing
     queue.add(async () => {
-      const containerAttributes = dockerEvent.Attributes
-      if (!isIxProjectName(containerAttributes[IX_DOCKER_LABEL])) {
+      if (!isIxProjectName(dockerEvent.Attributes[IX_DOCKER_LABEL])) {
         return
       }
 
       // Try to disconnect the container from all dragonifyed networks
-      logger.info(`App container stopping: "${containerAttributes.name}"...`)
+      logger.info(`App container stopping: "${dockerEvent.Attributes["name"]}"...`)
       try {
         await containerStop(networksDragonifyed, `/${dockerEvent.Attributes["name"]}`)
       } catch (e: any) {
@@ -616,7 +614,7 @@ async function main() {
 }
 
 // Handle Docker shutdown to obtain an exit code: 0
-function shutdown(signal) {
+function shutdown(signal: NodeJS.Signals) {
   console.log(`Received ${signal}, shutting down`);
   process.exit(0);
 }
