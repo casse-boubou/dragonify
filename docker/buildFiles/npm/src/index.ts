@@ -20,6 +20,7 @@ const DRAGONIFY_NETWORK_NAME: string = process.env.CUSTOMS_NETWORK_NAME?.toLower
 const IX_DOCKER_LABEL = "com.docker.compose.project"
 const ENV_CONNECT_ALL: string | undefined = process.env.CONNECT_ALL
 const LOG_LEVEL: string | undefined = process.env.LOG_LEVEL?.toLowerCase() ?? "info"
+const CONTAINER_BUILD_VERSION: string | undefined = process.env.CONTAINER_BUILD_VERSION?.toLowerCase() ?? "dev"
 const IDLE_PRUNE_DELAY_MS = 2 * 60 * 1000
 const MAX_PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000
 
@@ -33,6 +34,7 @@ if (LOG_LEVEL !== undefined && LOG_LEVEL == "debug") {
   DEBUG = true
 }
 
+logger.info(`Dragonify version: ${CONTAINER_BUILD_VERSION}`)
 logger.info(`Dragonify starting...`)
 logger.info(`LOG_LEVEL: ${LOG_LEVEL}`)
 logger.info(`CONNECT_ALL: ${CONNECT_ALL}`)

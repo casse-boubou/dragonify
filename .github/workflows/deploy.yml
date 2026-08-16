@@ -190,6 +190,8 @@ jobs:
             sbom: true
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}
+            build-args: |
+              CONTAINER_BUILD_VERSION=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.version'] }}
             cache-from: type=gha
             cache-to: type=gha,mode=max
 
