@@ -134,6 +134,22 @@ function isIxProjectName(name: string) {
 
 
 
+async function networkCreated(networksDragonifyed: NetworksState, created_network_name: string) {
+  for (let [a,b] of Object.entries(networksDragonifyed)) {
+    if (a === created_network_name) {
+      for (let containername of b.managed) {
+        let thisContainer = await filterContainers("name", containername)
+        if (!thisContainer[0]) continue
+        logger.info(`Reconnect "${thisContainer[0].Names.toString()}" to network "${a}"`)
+        await connectContainers(thisContainer[0], created_network_name)
+      }
+    }
+  }
+}
+
+
+
+
 async function removeContainerAndNetworkFromTuplesArray(networksDragonifyed: NetworksState, stopped_container_name: string) {
   // Remove the stopped container from all networks in array
   for (let [a, b] of Object.entries(networksDragonifyed)) {
@@ -179,7 +195,8 @@ async function isAllContainerContainLabelTag(network: NetworkInspectInfo, listOf
       logger.debug(`Container "${containerInThisNetwork}" found in network "${network.Name}" but not in container list, likely removed. Skipping.`)
       continue
     }
-    let hasNetworkTag = thisContainerInList.Labels[DRAGONIFY_NETWORK_LABEL]?.includes(network.Name) ?? false
+    let hasNetworkTag = thisContainerInList.Labels[DRAGONIFY_NETWORK_LABEL]?.split(',').includes(network.Name) ?? false
+
     // If one container does not have the label, return false
     if (!hasNetworkTag) {
       return false
@@ -392,7 +409,7 @@ async function addContainerAndNetworkToTuplesArray(networksDragonifyed: Networks
     // Verify if container contain Dragonify label
     if (isDragonifyLabeled(thisContainer.Labels)) {
       // Verify if label containe this network
-      if (thisContainer.Labels[DRAGONIFY_NETWORK_LABEL].includes(networkInfo.Name)) {
+      if (thisContainer.Labels[DRAGONIFY_NETWORK_LABEL].split(',').includes(networkInfo.Name)) {
         logger.debug(`"${thisContainer.Names.toString()}" is managed for "${networkInfo.Name}"`)
       }
 
@@ -525,7 +542,7 @@ async function setUpDragonifyNetwork() {
       const containers = INSPECT_NETWORK_NAME.Containers ?? {}
       for (const containerID of Object.keys(containers)) {
         let container = await filterContainers("id", containerID)
-        disconnectContainers(IS_DRAGONIFY_NETWORK_NAME[0], container[0])
+        await disconnectContainers(IS_DRAGONIFY_NETWORK_NAME[0], container[0])
       }
     }
   }
@@ -598,16 +615,13 @@ async function main() {
   events.on("network.create", (dockerEvent) => {
     // Use the queue to ensure sequential processing
     queue.add(async () => {
-      const networkName = dockerEvent.Attributes["name"]
 
-      for (let [a,b] of Object.entries(networksDragonifyed)) {
-        if (a === networkName) {
-          for (let containername of b.managed) {
-            let thisContainer = await filterContainers("name", containername)
-            if (!thisContainer[0]) continue
-            await connectContainers(thisContainer[0], networkName)
-          }
-        }
+      // Try to reconnect old containers that were previously connected to this network
+      logger.info(`Network created: "${dockerEvent.Attributes["name"]}"...`)
+      try {
+        await networkCreated(networksDragonifyed, dockerEvent.Attributes["name"])
+      } catch (e: any) {
+        logger.error(`Exception during networkCreation:`, e)
       }
     })
   })

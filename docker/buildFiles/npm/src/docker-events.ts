@@ -10,8 +10,8 @@ export function getEventStream(docker: Docker): EventEmitter {
 
   const opts: Docker.GetEventsOptions = {
     filters: {
-      type: ["container"],
-      event: ["start", "stop"],
+      type: ["container", "network"],
+      event: ["start", "stop", "create"],
     },
   }
 
