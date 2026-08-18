@@ -10,7 +10,6 @@ on:
   release:
     types:
       - published
-      - edited
   workflow_dispatch:
 
 concurrency:
@@ -27,8 +26,6 @@ env:
 
 permissions:
   contents: read
-  packages: write
-  id-token: write # needed for signing the images with GitHub OIDC Token
 
 
 jobs:
@@ -81,6 +78,11 @@ jobs:
           with:
               ignore: DL3002
               dockerfile: ./docker/Dockerfile
+        - name: Run hadolint
+          uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
+          with:
+              ignore: DL3002
+              dockerfile: ./docker/Dockerfile.Dev
 
   lint_dockercompose:
     name: test docker-compose
@@ -110,6 +112,10 @@ jobs:
           uses: casse-boubou/gitaction-test@main
           with:
             dockerfile: 'docker/Dockerfile'
+        - name: Check dockerfile
+          uses: casse-boubou/gitaction-test@main
+          with:
+            dockerfile: 'docker/Dockerfile.Dev'
 
 
 
@@ -123,6 +129,10 @@ jobs:
       - check_pinned_package
     name: Build docker image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
 
     steps:
         # check out code from GitHub
@@ -130,12 +140,6 @@ jobs:
           uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
           with:
             persist-credentials: false
-
-        # Install the cosign tool except on PR
-        # https://github.com/sigstore/cosign-installer
-        - name: Install cosign
-          if: github.event_name != 'pull_request'
-          uses: sigstore/cosign-installer@v4.1.2
 
         # Set up QEMU for allow possibility to buil multi arch
         # https://github.com/docker/setup-qemu-action
@@ -169,13 +173,27 @@ jobs:
             images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
             tags: |
               # Following TAG are for tag the branche
-              type=raw,value=main,enable=${{ github.event_name == 'release' }}
               type=raw,value=${{ github.head_ref }},enable=${{ github.event_name == 'pull_request' }}
               # Following TAG are always apply
-              type=sha,prefix=sha-,format=short,enable=true
+              type=sha,prefix=commit_sha-,format=short,enable=true
               # Following TAG are applied IF event from 'release'
               type=raw,value=latest,enable=${{ github.event_name == 'release' }}
               type=semver,pattern={{version}},prefix=v,enable=${{ github.event_name == 'release' }}
+
+        - name: Set container build version
+          id: container_version
+          env:
+            GITHUB_SHA: ${{ github.sha }}
+            TAG_NAME: ${{ github.event_name == 'release' && github.ref_name || '' }}
+          run: |
+            # Set container build version
+            if [ -n "$TAG_NAME" ]; then
+              echo "container_build_version=$TAG_NAME" >> "$GITHUB_OUTPUT"
+              echo "Container build version is $TAG_NAME"
+            else
+              echo "container_build_version=commit_sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+              echo "Container build version is commit_sha-${GITHUB_SHA}"
+            fi
 
         # Build and push Docker image with Buildx (build if release or PR)
         # https://github.com/docker/build-push-action
@@ -191,9 +209,15 @@ jobs:
             tags: ${{ steps.metadata.outputs.tags }}
             labels: ${{ steps.metadata.outputs.labels }}
             build-args: |
-              CONTAINER_BUILD_VERSION=${{ fromJSON(steps.metadata.outputs.json).labels['org.opencontainers.image.version'] }}
+              CONTAINER_BUILD_VERSION=${{ steps.container_version.outputs.container_build_version }}
             cache-from: type=gha
             cache-to: type=gha,mode=max
+
+        # Install the cosign tool except on PR
+        # https://github.com/sigstore/cosign-installer
+        - name: Install cosign
+          if: ${{ github.event_name != 'pull_request' }}
+          uses: sigstore/cosign-installer@v4.1.2
 
         # Sign the resulting Docker image digest except on PRs.
         # This will only write to the public Rekor transparency log when the Docker
@@ -212,4 +236,12 @@ jobs:
             for tag in ${TAGS}; do
               images+="${tag}@${DIGEST} "
             done
+            echo "Signing: ${images}"
             cosign sign --yes ${images}
+
+            # Vérification immédiate de la signature
+            echo "Verifying signature..."
+            cosign verify \
+              --certificate-identity-regexp="^https://github.com/${{ github.repository }}" \
+              --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+              "ghcr.io/${{ github.repository }}@${DIGEST}"
