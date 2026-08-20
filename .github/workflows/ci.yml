@@ -113,11 +113,11 @@ jobs:
             persist-credentials: false
         # check compose.yml integrity
         - name: Check dockerfile
-          uses: casse-boubou/gitaction-test@main
+          uses: casse-boubou/gitaction-test@0df5ec94b08edcb75ae40f76521c5fbcbc1532d0 # main
           with:
             dockerfile: 'docker/Dockerfile'
         - name: Check dockerfile
-          uses: casse-boubou/gitaction-test@main
+          uses: casse-boubou/gitaction-test@0df5ec94b08edcb75ae40f76521c5fbcbc1532d0 # main
           with:
             dockerfile: 'docker/Dockerfile.Dev'
 
