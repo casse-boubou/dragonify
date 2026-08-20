@@ -4,8 +4,8 @@ COPY buildFiles/npm/tsconfig.json /app/
 WORKDIR /app
 RUN npm install
 COPY buildFiles/npm/src /app/src
-RUN npm run lint
-RUN npm run build
+RUN npm run lint && \
+    npm run build
 
 FROM node:24-trixie-slim AS prod-deps
 COPY buildFiles/npm/package*.json /app/
