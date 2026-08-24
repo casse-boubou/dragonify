@@ -11,7 +11,7 @@ COPY buildFiles/npm/package*.json /app/
 WORKDIR /app
 RUN npm ci --omit=dev
 
-FROM gcr.io/distroless/nodejs24-debian13:latest@sha256:2bf219fb146cb474aae1ef2b446f8e61fb6aa47b55d067fd05cae39ec348acc2 AS worker
+FROM gcr.io/distroless/nodejs24-debian13:latest@sha256:579735ae8373ff1ab6c4aa251480fd17ae6ec1b7f83b1bfc76bf6003d0fb242b AS worker
 ARG CONTAINER_BUILD_VERSION
 ENV CONTAINER_BUILD_VERSION=${CONTAINER_BUILD_VERSION}
 COPY --from=build /app/dist/index.js /app/index.js
