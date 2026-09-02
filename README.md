@@ -49,4 +49,5 @@ To connect an application container to one or more specific networks, you use a 
   labels:
     - "tj.horner.dragonify.networks=media-net,downloads"
 ```
+
 ![label example](label-example.png)

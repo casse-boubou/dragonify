@@ -103,7 +103,7 @@ jobs:
             docker compose -f docker/docker-compose.yml config --quiet
 
   check_pinned_package:
-    name: Docker Pinned Package Checke
+    name: Docker Pinned Package Check
     runs-on: ubuntu-latest
     steps:
         # check out code from GitHub
