@@ -5,38 +5,5 @@
     "docker:pinDigests"
   ],
   "internalChecksFilter": "none",
-  "internalChecksAsSuccess": true,
-  "customManagers": [
-    {
-      "customType": "regex",
-      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
-      "datasourceTemplate": "repology",
-      "packageNameTemplate": "alpine_3_24/{{package}}",
-      "depNameTemplate": "{{package}}",
-      "matchStrings": [
-        "\\s(?<package>[a-z0-9][a-z0-9-_]+)=(?<currentValue>[a-z0-9-_.]+)\\s"
-      ],
-      "versioningTemplate": "loose"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
-      "datasourceTemplate": "github-tags",
-      "packageNameTemplate": "timvisee/lazymc",
-      "depNameTemplate": "LazyMC",
-      "matchStrings": [
-        "(ARG)\\s(LAZYMC.*_VERSION)=\"(?<currentValue>v?[0-9]+\\.[0-9]+(\\.[0-9]+){0,1})\"\\n"
-      ],
-      "versioningTemplate": "loose"
-    }
-  ],
-  "packageRules": [
-    {
-      "matchManagers": ["custom.regex"],
-      "matchDatasources": ["github-tags"],
-      "matchDepNames": ["LazyMC"],
-      "commitMessagePrefix": "✨",
-      "commitMessageTopic": "{{depName}}"
-    }
-  ]
+  "internalChecksAsSuccess": true
 }
