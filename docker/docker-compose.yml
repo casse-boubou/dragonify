@@ -1,7 +1,7 @@
 services:
   dragonify:
     container_name: dragonify
-    image: ghcr.io/casse-boubou/dragonify:v1.0.0@sha256:c176e79e3e8c0823af86383fd9e4303846374c51a4cbcfa07863ec605b83ccee
+    image: ghcr.io/casse-boubou/dragonify:v1.1.1@sha256:4ef1ef470311a3e08f261c91480fdc362d20d6708783bff23ada195d661cc2c7
     restart: unless-stopped
     security_opt:
       - no-new-privileges=true
