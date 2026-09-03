@@ -49,4 +49,4 @@ STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=15s --start-interval=3s \
     CMD ["/bin/busybox", "sh", "healthcheck"]
 
-CMD ["index.js"]
+CMD ["/app/index.js"]
