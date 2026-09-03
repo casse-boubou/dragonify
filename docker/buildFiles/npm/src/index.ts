@@ -11,10 +11,12 @@ import {
 import { getEventStream } from "./docker-events"
 import { logger } from "./logger"
 import PQueue from "p-queue"
+import fs from "fs"
 
 
 type NetworksState = Record<string, { managed: string[], natif: string[] }>
 
+const HEARTBEAT_FILE: string = process.env.HEARTBEAT_FILE ?? "dragonify-heartbeat"
 const DRAGONIFY_NETWORK_LABEL = "tj.horner.dragonify.networks"
 const DRAGONIFY_NETWORK_NAME: string = process.env.CUSTOMS_NETWORK_NAME?.toLowerCase() ?? "apps-internal"
 const IX_DOCKER_LABEL = "com.docker.compose.project"
@@ -106,6 +108,41 @@ const DOCKER: Docker = new Docker()
 // }
 // For each network, Dragonify knows which containers it has connected, it knows which containers belong to the stack,
 // and it can decide to connect a container when the network is created, disconnect it when the stack disappears, and delete the network if necessary.
+
+
+
+
+function writeHeartbeat() {
+  try {
+    fs.writeFileSync(HEARTBEAT_FILE, Date.now().toString())
+  } catch (e: any) {
+    logger.error(`Failed to write heartbeat file:`, e)
+  }
+}
+
+function startHeartbeat() {
+  const Heartbeat = async () => {
+    try {
+      // checks the Docker socket is still accessible
+      await DOCKER.ping()
+      if (!fs.existsSync(HEARTBEAT_FILE)) {
+      writeHeartbeat()
+      }
+    } catch (e: any) {
+      fs.unlink(HEARTBEAT_FILE, err => {
+        if (err) {
+          logger.warn(`Docker ping failed during healthcheck. An error occurred during the removal of ${HEARTBEAT_FILE}: ${err.message}`)
+        } else {
+          logger.warn(`Docker ping failed during healthcheck`)
+        }
+      })
+    }
+  }
+
+  Heartbeat()
+  // setInterval -> Calls a function or executes a code snippet, with a fixed time delay between each call
+  setInterval(Heartbeat, 30 * 1000)
+}
 
 
 
@@ -585,6 +622,7 @@ async function main() {
     // Flush any leftover empty networks
     await removeEmptyNetwork()
     logger.info(`Dragonify initialised.`)
+    startHeartbeat()
   } catch (e: any) {
     logger.error(`Exception during initialiseDragonify:`, e)
   }
