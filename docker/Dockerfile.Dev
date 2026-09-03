@@ -4,7 +4,7 @@ ARG NODE_BASE_IMAGE_VERSION="24-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d696
 ##################################
 # DOWNLOAD BUSYBOX TO USE ITS EXECUTABLE
 ##################################
-FROM busybox:stable AS busybox
+FROM busybox:stable@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662 AS busybox
 
 
 ##################################
