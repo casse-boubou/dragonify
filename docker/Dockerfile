@@ -1,5 +1,5 @@
 # ARG necessaire pour la version des app FROM
-ARG NODE_BASE_IMAGE_VERSION="24-trixie-slim@sha256:6950b66b4c0cb0151ce89fa75074673850763d096b044f422c6729b588dd4956"
+ARG NODE_BASE_IMAGE_VERSION="24-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe"
 
 ##################################
 # DOWNLOAD BUSYBOX TO USE ITS EXECUTABLE
