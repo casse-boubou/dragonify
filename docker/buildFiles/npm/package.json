@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "dockerode": "^5.0.1",
-    "p-queue": "^9.3.3",
+    "p-queue": "^10.0.0",
     "stream-chain": "^4.2.5",
     "stream-json": "^3.5.0",
     "winston": "^3.19.0"
