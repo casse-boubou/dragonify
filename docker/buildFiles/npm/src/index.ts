@@ -183,9 +183,13 @@ function schedulePeriodicPrune(queue: PQueue) {
   const runPrune = (reason: string) => {
     // Add prune task to queue
     queue.add(async () => {
-      logger.debug(`Periodic network cleanup triggered (${reason} after the last container stopped)`)
-      await removeEmptyNetwork()
-      lastPruneTime = Date.now()
+      try {
+        logger.debug(`Periodic network cleanup triggered (${reason} after the last container stopped)`)
+        await removeEmptyNetwork()
+        lastPruneTime = Date.now()
+      } catch (error) {
+        logger.error(`Network cleanup failed: ${error}`)
+      }
     })
   }
 
