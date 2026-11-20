@@ -168,7 +168,7 @@ function getDnsName(container: ContainerInfo) {
   const project = container.Labels[IX_DOCKER_LABEL]
   return `${service}.${project}.svc.cluster.local`
 }
-function isIxProjectName(name: string) {
+function isIxProjectName(name: string | undefined) {
   return name?.startsWith("ix-") ?? false
 }
 
