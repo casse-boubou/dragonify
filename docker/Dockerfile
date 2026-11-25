@@ -1,5 +1,5 @@
 # ARG necessaire pour la version des app FROM
-ARG NODE_BASE_IMAGE_VERSION="26-trixie-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc"
+ARG NODE_BASE_IMAGE_VERSION="26-trixie-slim@sha256:abe7e5a82b61a8ef67b315b85497c9e65173387ccf2f4a029248184b8e020be5"
 
 ##################################
 # DOWNLOAD BUSYBOX TO USE ITS EXECUTABLE
@@ -31,7 +31,7 @@ RUN npm ci --omit=dev
 ##################################
 # DRAGONIFY
 ##################################
-FROM gcr.io/distroless/nodejs24-debian13:latest@sha256:3cd3edf42ec9122fde1be4cd6de2bf63a4ffc4df3353492e216ed3e1c5f906c8 AS worker
+FROM gcr.io/distroless/nodejs24-debian13:latest@sha256:f2d4862c952f2bfee7117f1b74e4990fff94532ba1eb2f2670a5ec39f9f04295 AS worker
 ARG CONTAINER_BUILD_VERSION
 ENV CONTAINER_BUILD_VERSION=${CONTAINER_BUILD_VERSION}
 COPY --from=busybox /bin/busybox /bin/busybox
